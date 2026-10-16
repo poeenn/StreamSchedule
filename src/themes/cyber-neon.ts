@@ -1,0 +1,45 @@
+import { ScheduleTheme } from '../types/theme';
+
+export const cyberNeonTheme: ScheduleTheme = {
+  id: 'cyber-neon',
+  name: 'サイバーネオン',
+  description: '近未来サイバーパンク調。ネオンシアンとマゼンタが映えるハイテクスタイル。',
+  previewThumbnail: '#00f3ff',
+  colors: {
+    background: '#070a13',
+    bgGlowColor: 'rgba(0, 243, 255, 0.15)',
+    cardBg: 'rgba(13, 21, 39, 0.85)',
+    cardBorder: 'rgba(0, 243, 255, 0.5)',
+    cardShadow: 'rgba(0, 243, 255, 0.3)',
+    textPrimary: '#ffffff',
+    textSecondary: '#94a3b8',
+    accentPrimary: '#00f3ff',
+    accentSecondary: '#ff007f',
+    timeBadgeBg: '#00f3ff',
+    timeBadgeText: '#070a13',
+    offDayBadgeBg: 'rgba(255, 0, 127, 0.25)',
+    offDayBadgeText: '#ff007f',
+    categoryBadgeColors: {
+      game: { bg: 'rgba(0, 243, 255, 0.2)', text: '#00f3ff' },
+      chat: { bg: 'rgba(255, 0, 127, 0.2)', text: '#ff007f' },
+      sing: { bg: 'rgba(57, 255, 20, 0.2)', text: '#39ff14' },
+      collab: { bg: 'rgba(255, 170, 0, 0.2)', text: '#ffaa00' },
+      event: { bg: 'rgba(180, 0, 255, 0.2)', text: '#b400ff' },
+      holiday: { bg: 'rgba(100, 116, 139, 0.25)', text: '#94a3b8' },
+      other: { bg: 'rgba(255, 255, 255, 0.15)', text: '#e2e8f0' },
+    },
+    headerAccent: '#00f3ff',
+    creditText: '#64748b',
+  },
+  typography: {
+    titleFont: "'Orbitron', 'Rajdhani', 'Segoe UI', sans-serif",
+    dayFont: "'Rajdhani', 'Segoe UI', sans-serif",
+    bodyFont: "'Noto Sans JP', 'Hiragino Kaku Gothic ProN', sans-serif",
+  },
+  decorations: {
+    patternType: 'grid',
+    patternOpacity: 0.1,
+    cardCornerRadius: 10,
+    cardGlow: true,
+  },
+};

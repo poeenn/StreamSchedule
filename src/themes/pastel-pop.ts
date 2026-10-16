@@ -1,0 +1,45 @@
+import { ScheduleTheme } from '../types/theme';
+
+export const pastelPopTheme: ScheduleTheme = {
+  id: 'pastel-pop',
+  name: 'パステルポップ',
+  description: 'やわらかくキュートなパステル調。ドット柄とふんわり角丸の癒し系スタイル。',
+  previewThumbnail: '#ff8da1',
+  colors: {
+    background: '#fff9fa',
+    bgGlowColor: 'rgba(255, 141, 161, 0.15)',
+    cardBg: 'rgba(255, 255, 255, 0.9)',
+    cardBorder: 'rgba(255, 141, 161, 0.4)',
+    cardShadow: 'rgba(255, 141, 161, 0.2)',
+    textPrimary: '#4a3e4a',
+    textSecondary: '#8d7b8d',
+    accentPrimary: '#ff8da1',
+    accentSecondary: '#b39ddb',
+    timeBadgeBg: '#ff8da1',
+    timeBadgeText: '#ffffff',
+    offDayBadgeBg: 'rgba(179, 157, 219, 0.25)',
+    offDayBadgeText: '#7e57c2',
+    categoryBadgeColors: {
+      game: { bg: 'rgba(129, 212, 250, 0.35)', text: '#0288d1' },
+      chat: { bg: 'rgba(255, 141, 161, 0.3)', text: '#e91e63' },
+      sing: { bg: 'rgba(255, 202, 40, 0.35)', text: '#f57f17' },
+      collab: { bg: 'rgba(179, 157, 219, 0.35)', text: '#673ab7' },
+      event: { bg: 'rgba(255, 171, 145, 0.35)', text: '#d84315' },
+      holiday: { bg: 'rgba(189, 189, 189, 0.3)', text: '#757575' },
+      other: { bg: 'rgba(207, 216, 220, 0.35)', text: '#546e7a' },
+    },
+    headerAccent: '#ff8da1',
+    creditText: '#b0a0b0',
+  },
+  typography: {
+    titleFont: "'M PLUS Rounded 1c', 'Kosugi Maru', sans-serif",
+    dayFont: "'M PLUS Rounded 1c', 'Kosugi Maru', sans-serif",
+    bodyFont: "'M PLUS Rounded 1c', 'Noto Sans JP', sans-serif",
+  },
+  decorations: {
+    patternType: 'dots',
+    patternOpacity: 0.15,
+    cardCornerRadius: 18,
+    cardGlow: false,
+  },
+};

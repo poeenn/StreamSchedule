@@ -1,0 +1,45 @@
+import { ScheduleTheme } from '../types/theme';
+
+export const darkChicTheme: ScheduleTheme = {
+  id: 'dark-chic',
+  name: 'ダークシック',
+  description: '落ち着いた高級感漂う夜調。シャンパンゴールドと深みのあるブラックの上品スタイル。',
+  previewThumbnail: '#e5b95f',
+  colors: {
+    background: '#121316',
+    bgGlowColor: 'rgba(229, 185, 95, 0.12)',
+    cardBg: 'rgba(26, 27, 31, 0.88)',
+    cardBorder: 'rgba(229, 185, 95, 0.4)',
+    cardShadow: 'rgba(0, 0, 0, 0.5)',
+    textPrimary: '#f8fafc',
+    textSecondary: '#9ca3af',
+    accentPrimary: '#e5b95f',
+    accentSecondary: '#f3d089',
+    timeBadgeBg: '#e5b95f',
+    timeBadgeText: '#121316',
+    offDayBadgeBg: 'rgba(136, 19, 55, 0.3)',
+    offDayBadgeText: '#f43f5e',
+    categoryBadgeColors: {
+      game: { bg: 'rgba(229, 185, 95, 0.2)', text: '#f3d089' },
+      chat: { bg: 'rgba(217, 119, 6, 0.25)', text: '#fbbf24' },
+      sing: { bg: 'rgba(168, 85, 247, 0.25)', text: '#c084fc' },
+      collab: { bg: 'rgba(236, 72, 153, 0.25)', text: '#f472b6' },
+      event: { bg: 'rgba(239, 68, 68, 0.25)', text: '#f87171' },
+      holiday: { bg: 'rgba(75, 85, 99, 0.35)', text: '#9ca3af' },
+      other: { bg: 'rgba(156, 163, 175, 0.2)', text: '#e5e7eb' },
+    },
+    headerAccent: '#e5b95f',
+    creditText: '#6b7280',
+  },
+  typography: {
+    titleFont: "'Cinzel', 'Playfair Display', serif",
+    dayFont: "'Cinzel', 'Montserrat', sans-serif",
+    bodyFont: "'Noto Serif JP', 'Hiragino Mincho ProN', serif",
+  },
+  decorations: {
+    patternType: 'none',
+    patternOpacity: 0,
+    cardCornerRadius: 6,
+    cardGlow: true,
+  },
+};

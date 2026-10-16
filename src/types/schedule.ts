@@ -41,6 +41,8 @@ export interface CharacterImageConfig {
   alignment: 'right' | 'left' | 'center'; // 立ち絵基本配置
 }
 
+export type AvatarConfig = CharacterImageConfig;
+
 export interface ScheduleData {
   streamerName: string;         // 配信者名 (例: 'ぽえーん / poeenn')
   streamerHandle: string;       // Xアカウント (例: '@poeenn')

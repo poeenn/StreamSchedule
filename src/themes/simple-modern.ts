@@ -1,0 +1,45 @@
+import { ScheduleTheme } from '../types/theme';
+
+export const simpleModernTheme: ScheduleTheme = {
+  id: 'simple-modern',
+  name: 'シンプルモダン',
+  description: '洗練されたミニマルデザイン。高い視認性と実用性を備えた万能スタイル。',
+  previewThumbnail: '#2563eb',
+  colors: {
+    background: '#f8fafc',
+    bgGlowColor: 'rgba(37, 99, 235, 0.08)',
+    cardBg: 'rgba(255, 255, 255, 0.98)',
+    cardBorder: 'rgba(203, 213, 225, 0.9)',
+    cardShadow: 'rgba(15, 23, 42, 0.08)',
+    textPrimary: '#0f172a',
+    textSecondary: '#64748b',
+    accentPrimary: '#2563eb',
+    accentSecondary: '#f97316',
+    timeBadgeBg: '#2563eb',
+    timeBadgeText: '#ffffff',
+    offDayBadgeBg: 'rgba(241, 245, 249, 1)',
+    offDayBadgeText: '#64748b',
+    categoryBadgeColors: {
+      game: { bg: 'rgba(37, 99, 235, 0.12)', text: '#1d4ed8' },
+      chat: { bg: 'rgba(249, 115, 22, 0.15)', text: '#c2410c' },
+      sing: { bg: 'rgba(16, 185, 129, 0.15)', text: '#047857' },
+      collab: { bg: 'rgba(139, 92, 246, 0.15)', text: '#6d28d9' },
+      event: { bg: 'rgba(236, 72, 153, 0.15)', text: '#be185d' },
+      holiday: { bg: 'rgba(148, 163, 184, 0.18)', text: '#475569' },
+      other: { bg: 'rgba(100, 116, 139, 0.15)', text: '#334155' },
+    },
+    headerAccent: '#2563eb',
+    creditText: '#94a3b8',
+  },
+  typography: {
+    titleFont: "'Inter', 'Helvetica Neue', Arial, sans-serif",
+    dayFont: "'Inter', 'Helvetica Neue', Arial, sans-serif",
+    bodyFont: "'Noto Sans JP', 'Hiragino Sans', sans-serif",
+  },
+  decorations: {
+    patternType: 'stripes',
+    patternOpacity: 0.08,
+    cardCornerRadius: 8,
+    cardGlow: false,
+  },
+};
