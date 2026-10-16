@@ -36,8 +36,8 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="brand-badge">
           <Calendar className="brand-icon" size={24} />
           <div>
-            <h1 className="brand-title">配信スケジュールくん</h1>
-            <p className="brand-subtitle">StreamSchedule - VTuber・実況者向け週間予定表ジェネレーター</p>
+            <h1 className="brand-title">配信スケジュール画像メーカー</h1>
+            <p className="brand-subtitle">StreamSchedule - VTuber・実況者向け 週間予定表・告知画像作成ツール</p>
           </div>
         </div>
 

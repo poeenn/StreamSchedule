@@ -9,9 +9,9 @@ export const AuthorFooter: React.FC = () => {
         {/* オーサー支援 & フィードバックセクション */}
         <div className="footer-main-grid">
           <div className="footer-col">
-            <h3 className="footer-heading">StreamSchedule (配信スケジュールくん)</h3>
+            <h3 className="footer-heading">配信スケジュール画像メーカー (StreamSchedule)</h3>
             <p className="footer-desc">
-              VTuber・ゲーム実況配信者のためのブラウザ完結型・週間配信予定表ジェネレーター。
+              VTuber・ゲーム実況配信者のためのブラウザ完結型・週間配信予定表＆告知画像作成ツール。
               画像生成やデータ保存はすべてお使いの端末ローカルで処理されるため、未公開情報も安全です。
             </p>
             <div className="author-credits mt-3">
