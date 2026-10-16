@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { calculateLayout } from '../src/core/layout-calculator';
-import { CardRect } from '../src/types/canvas';
+import { CanvasArea, CardRect } from '../src/types/canvas';
 
 // 矩形同士の重なり（衝突）を判定する幾何ユーティリティ
-function checkRectsOverlap(a: CardRect, b: CardRect): boolean {
+function checkRectsOverlap(a: CanvasArea, b: CanvasArea): boolean {
   return !(
     a.x + a.width <= b.x ||
     b.x + b.width <= a.x ||
@@ -14,7 +14,7 @@ function checkRectsOverlap(a: CardRect, b: CardRect): boolean {
 
 describe('layout-calculator', () => {
   describe('1920x1080 (Full HD)', () => {
-    it('calculates valid layout within 1920x1080 boundaries', () => {
+    it('calculates valid layout within 1920x1080 boundaries (side-avatar)', () => {
       const layout = calculateLayout('1920x1080');
 
       expect(layout.canvasWidth).toBe(1920);
@@ -45,7 +45,8 @@ describe('layout-calculator', () => {
       expect(layout.cards[5].isWeekend).toBe(true);  // SAT
       expect(layout.cards[6].isWeekend).toBe(true);  // SUN
 
-      // 立ち絵エリアの検証
+      // 立ち絵エリアの検証 (右側配置)
+      expect(layout.avatarArea.x).toBeGreaterThan(layout.cards[3].x + layout.cards[3].width);
       expect(layout.avatarArea.x + layout.avatarArea.width).toBeLessThanOrEqual(1920);
       expect(layout.avatarArea.y + layout.avatarArea.height).toBeLessThanOrEqual(1080);
 
@@ -86,7 +87,33 @@ describe('layout-calculator', () => {
     });
   });
 
-  describe('Layout Options (wide-grid)', () => {
+  describe('Layout Options (left-avatar & wide-grid)', () => {
+    it('places avatar on left and 7 cards on right without overlap when left-avatar is selected', () => {
+      const leftLayout = calculateLayout('1920x1080', { layoutType: 'left-avatar' });
+      const left1200 = calculateLayout('1200x675', { layoutType: 'left-avatar' });
+
+      // 左側に立ち絵エリアがあり、右側にカード群があること
+      expect(leftLayout.avatarArea.x).toBe(60);
+      expect(leftLayout.avatarArea.x + leftLayout.avatarArea.width).toBeLessThanOrEqual(
+        leftLayout.cards[0].x
+      );
+      expect(leftLayout.header.titleX).toBe(leftLayout.cards[0].x);
+
+      // 全カードが1920x1080内に収まり、立ち絵エリアや他カードと重ならないこと
+      for (const card of leftLayout.cards) {
+        expect(card.x + card.width).toBeLessThanOrEqual(1920);
+        expect(card.y + card.height).toBeLessThanOrEqual(1080);
+        expect(checkRectsOverlap(card, leftLayout.avatarArea)).toBe(false);
+      }
+
+      // 1200x675でも境界内に収まること
+      for (const card of left1200.cards) {
+        expect(card.x + card.width).toBeLessThanOrEqual(1200);
+        expect(card.y + card.height).toBeLessThanOrEqual(675);
+        expect(checkRectsOverlap(card, left1200.avatarArea)).toBe(false);
+      }
+    });
+
     it('adjusts card sizes when wide-grid is selected without avatar area reservation', () => {
       const sideLayout = calculateLayout('1920x1080', { layoutType: 'side-avatar' });
       const wideLayout = calculateLayout('1920x1080', { layoutType: 'wide-grid' });
@@ -95,7 +122,7 @@ describe('layout-calculator', () => {
       expect(wideLayout.cards[0].width).toBeGreaterThan(sideLayout.cards[0].width);
 
       // wide-grid でも重なりがなく境界内
-      for (const card of wideLayout.cards) {
+      for (const card of wideLayout.cards as CardRect[]) {
         expect(card.x + card.width).toBeLessThanOrEqual(1920);
         expect(card.y + card.height).toBeLessThanOrEqual(1080);
       }

@@ -11,14 +11,31 @@ import {
   ChevronDown,
   ChevronUp,
   Settings,
+  Tv,
+  Heart,
+  Zap,
+  Plus,
+  X,
 } from 'lucide-react';
-import { ScheduleItem, StreamCategory, WeeklySchedule } from '../types/schedule';
-import { getDayOfWeekJapanese } from '../core/date-utils';
+import {
+  QuickTagPreset,
+  ScheduleItem,
+  StreamCategory,
+  WeeklySchedule,
+} from '../types/schedule';
+import { STREAM_PLATFORMS } from '../constants/default-schedule';
+import { getDayOfWeekJapanese, getWeekMonday, getWeekSunday } from '../core/date-utils';
 
 interface ScheduleEditorProps {
   schedule: WeeklySchedule;
+  quickTags: QuickTagPreset[];
   onUpdateSchedule: (partial: Partial<WeeklySchedule>) => void;
   onUpdateItem: (index: number, partial: Partial<ScheduleItem>) => void;
+  onApplyBulkTime: (timeString: string) => void;
+  onApplyStartDate: (startDate: Date) => void;
+  onAddQuickTag: (tag: Omit<QuickTagPreset, 'id'>) => void;
+  onRemoveQuickTag: (id: string) => void;
+  onShowToast?: (message: string, type?: 'success' | 'info' | 'error') => void;
 }
 
 const CATEGORY_OPTIONS: { value: StreamCategory; label: string }[] = [
@@ -31,16 +48,58 @@ const CATEGORY_OPTIONS: { value: StreamCategory; label: string }[] = [
   { value: 'other', label: '📌 その他' },
 ];
 
+const BULK_TIME_PRESETS = ['19:00〜', '20:00〜', '21:00〜', '22:00〜', '23:00〜'];
+
 export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({
   schedule,
+  quickTags,
   onUpdateSchedule,
   onUpdateItem,
+  onApplyBulkTime,
+  onApplyStartDate,
+  onAddQuickTag,
+  onRemoveQuickTag,
+  onShowToast,
 }) => {
   const [isBasicSettingsOpen, setIsBasicSettingsOpen] = useState<boolean>(true);
+  const [customBulkTime, setCustomBulkTime] = useState<string>('21:00〜');
+  const [calendarDateStr, setCalendarDateStr] = useState<string>('');
+  const [isAddingTag, setIsAddingTag] = useState<boolean>(false);
+  const [newTagLabel, setNewTagLabel] = useState<string>('');
+  const [newTagTitle, setNewTagTitle] = useState<string>('');
+  const [newTagCategory, setNewTagCategory] = useState<StreamCategory>('game');
+  const [newTagBadge, setNewTagBadge] = useState<string>('');
+
+  const selectedPlatforms = schedule.platforms ?? [];
+
+  const handleTogglePlatform = (platform: string) => {
+    const exists = selectedPlatforms.includes(platform);
+    const next = exists
+      ? selectedPlatforms.filter((p) => p !== platform)
+      : [...selectedPlatforms, platform];
+    onUpdateSchedule({ platforms: next });
+  };
+
+  const handleCreateQuickTag = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTagTitle.trim()) return;
+    const label = newTagLabel.trim() || newTagTitle.trim().slice(0, 10);
+    onAddQuickTag({
+      label,
+      title: newTagTitle.trim(),
+      category: newTagCategory,
+      badgeText: newTagBadge.trim() || undefined,
+    });
+    setNewTagLabel('');
+    setNewTagTitle('');
+    setNewTagBadge('');
+    setIsAddingTag(false);
+    onShowToast?.(`マイ定番枠「${label}」を登録しました！`, 'success');
+  };
 
   return (
     <div className="schedule-editor">
-      {/* 基本設定セクション */}
+      {/* 基本情報＆プロフィール設定セクション */}
       <section className="editor-card basic-settings-card">
         <button
           type="button"
@@ -49,14 +108,14 @@ export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({
         >
           <div className="section-title">
             <Settings size={18} className="text-accent" />
-            <span>基本情報設定</span>
+            <span>2. 配信者プロフィール・基本情報設定</span>
           </div>
           {isBasicSettingsOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </button>
 
         {isBasicSettingsOpen && (
-          <div className="section-body">
-            <div className="form-grid-2">
+          <div className="section-body mt-3">
+            <div className="form-grid-3">
               <div className="form-group">
                 <label className="form-label" htmlFor="streamerName">
                   <User size={14} />
@@ -69,6 +128,21 @@ export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({
                   placeholder="例: ぽえーん"
                   value={schedule.streamerName}
                   onChange={(e) => onUpdateSchedule({ streamerName: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="fanMark">
+                  <Heart size={14} />
+                  <span>推しマーク / ファンマーク</span>
+                </label>
+                <input
+                  id="fanMark"
+                  type="text"
+                  className="form-input"
+                  placeholder="例: 🎮🌸"
+                  value={schedule.fanMark ?? ''}
+                  onChange={(e) => onUpdateSchedule({ fanMark: e.target.value })}
                 />
               </div>
 
@@ -120,6 +194,29 @@ export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({
               </div>
             </div>
 
+            {/* 配信プラットフォームバッジ選択 */}
+            <div className="form-group mt-3">
+              <label className="form-label">
+                <Tv size={14} />
+                <span>配信先プラットフォームバッジ（複数選択可・ヘッダーに表示）</span>
+              </label>
+              <div className="platform-pills-row mt-1">
+                {STREAM_PLATFORMS.map((platform) => {
+                  const active = selectedPlatforms.includes(platform);
+                  return (
+                    <button
+                      key={platform}
+                      type="button"
+                      className={`platform-pill ${active ? 'active' : ''}`}
+                      onClick={() => handleTogglePlatform(platform)}
+                    >
+                      <span>{platform}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="form-grid-2 mt-3">
               <div className="form-group">
                 <label className="form-label" htmlFor="hashtag">
@@ -156,11 +253,211 @@ export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({
         )}
       </section>
 
+      {/* 時短・一括入力ツールバー */}
+      <section className="editor-card quick-tools-card mt-4">
+        <div className="section-title mb-2">
+          <Zap size={18} className="text-accent" />
+          <span>3. 時短ツール（開始日自動計算・一括時刻・マイ定番枠）</span>
+        </div>
+
+        {/* ① 開始日・曜日からの7日間自動計算 */}
+        <div className="quick-tool-row">
+          <span className="quick-tool-label">
+            <CalendarDays size={14} /> 開始日から7日分の日付・曜日を自動セット:
+          </span>
+          <div className="quick-buttons-wrap">
+            <button
+              type="button"
+              className="btn btn-secondary btn-xs"
+              onClick={() => {
+                onApplyStartDate(getWeekMonday(new Date()));
+                onShowToast?.('今週の月曜始まりで7日分の日付をセットしました！', 'success');
+              }}
+            >
+              今週の月曜から
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-xs"
+              onClick={() => {
+                const nextMon = getWeekMonday(new Date());
+                nextMon.setDate(nextMon.getDate() + 7);
+                onApplyStartDate(nextMon);
+                onShowToast?.('来週の月曜始まりで7日分の日付をセットしました！', 'success');
+              }}
+            >
+              来週の月曜から
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-xs"
+              onClick={() => {
+                onApplyStartDate(getWeekSunday(new Date()));
+                onShowToast?.('今週の日曜始まり（SUN〜SAT）で7日分をセットしました！', 'success');
+              }}
+            >
+              日曜始まりでセット
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-xs"
+              onClick={() => {
+                onApplyStartDate(new Date());
+                onShowToast?.('今日から7日分の日付・曜日を自動セットしました！', 'success');
+              }}
+            >
+              今日から7日間
+            </button>
+
+            <div className="inline-date-picker">
+              <input
+                type="date"
+                className="form-input-xs"
+                value={calendarDateStr}
+                aria-label="任意の開始日を指定"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setCalendarDateStr(val);
+                  if (val) {
+                    const [y, m, d] = val.split('-').map((n) => parseInt(n, 10));
+                    if (y && m && d) {
+                      onApplyStartDate(new Date(y, m - 1, d));
+                      onShowToast?.(`${m}/${d} からの7日間を自動計算してセットしました！`, 'success');
+                    }
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* ② 一括時刻セット */}
+        <div className="quick-tool-row mt-3">
+          <span className="quick-tool-label">
+            <Clock size={14} /> 全曜日（お休み以外）の配信時刻を一括変更:
+          </span>
+          <div className="quick-buttons-wrap">
+            {BULK_TIME_PRESETS.map((time) => (
+              <button
+                key={time}
+                type="button"
+                className="btn btn-secondary btn-xs"
+                onClick={() => {
+                  onApplyBulkTime(time);
+                  onShowToast?.(`お休み以外の全曜日を「${time}」に一括変更しました！`, 'success');
+                }}
+              >
+                {time}
+              </button>
+            ))}
+            <div className="inline-custom-time">
+              <input
+                type="text"
+                className="form-input-xs"
+                value={customBulkTime}
+                onChange={(e) => setCustomBulkTime(e.target.value)}
+                placeholder="任意時刻"
+                aria-label="一括適用するカスタム時刻"
+              />
+              <button
+                type="button"
+                className="btn btn-primary btn-xs"
+                onClick={() => {
+                  if (customBulkTime.trim()) {
+                    onApplyBulkTime(customBulkTime.trim());
+                    onShowToast?.(
+                      `お休み以外の全曜日を「${customBulkTime.trim()}」に一括変更しました！`,
+                      'success'
+                    );
+                  }
+                }}
+              >
+                一括反映
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ③ マイ定番枠（クイック入力タグ）管理 */}
+        <div className="quick-tool-row mt-3">
+          <div className="quick-tag-header-row">
+            <span className="quick-tool-label">
+              <Tag size={14} /> マイ定番枠（各曜日の「クイック挿入」ボタンに登録されます）:
+            </span>
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs text-accent"
+              onClick={() => setIsAddingTag((prev) => !prev)}
+            >
+              <Plus size={13} />
+              <span>{isAddingTag ? '閉じる' : '定番枠を追加'}</span>
+            </button>
+          </div>
+
+          <div className="quick-tags-manage-list mt-1">
+            {quickTags.map((qt) => (
+              <span key={qt.id} className="quick-tag-manage-chip">
+                <span>{qt.label}</span>
+                <button
+                  type="button"
+                  className="chip-remove-btn"
+                  onClick={() => onRemoveQuickTag(qt.id)}
+                  title={`「${qt.label}」を削除`}
+                >
+                  <X size={11} />
+                </button>
+              </span>
+            ))}
+          </div>
+
+          {isAddingTag && (
+            <form className="add-quick-tag-form mt-2" onSubmit={handleCreateQuickTag}>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="ボタン表示名 (例: 🎤 歌枠)"
+                value={newTagLabel}
+                onChange={(e) => setNewTagLabel(e.target.value)}
+              />
+              <input
+                type="text"
+                className="form-input"
+                placeholder="自動入力する配信タイトル (必須)"
+                value={newTagTitle}
+                onChange={(e) => setNewTagTitle(e.target.value)}
+                required
+              />
+              <select
+                className="form-select"
+                value={newTagCategory}
+                onChange={(e) => setNewTagCategory(e.target.value as StreamCategory)}
+              >
+                {CATEGORY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="特別バッジ (任意: 参加型 等)"
+                value={newTagBadge}
+                onChange={(e) => setNewTagBadge(e.target.value)}
+              />
+              <button type="submit" className="btn btn-primary btn-xs whitespace-nowrap">
+                登録保存
+              </button>
+            </form>
+          )}
+        </div>
+      </section>
+
       {/* 7日分の配信予定リスト */}
       <section className="daily-schedule-section mt-4">
         <div className="section-subheader">
           <CalendarDays size={18} className="text-accent" />
-          <h2>週間配信予定 (7日分)</h2>
+          <h2>4. 週間配信予定 (7日分)</h2>
         </div>
 
         <div className="daily-cards-list">
@@ -170,7 +467,7 @@ export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({
 
             return (
               <div
-                key={item.id || `day-${item.dayOfWeek}`}
+                key={item.id || `day-${index}`}
                 className={`day-card ${isWeekend ? 'is-weekend' : ''} ${item.isOff ? 'is-off' : ''}`}
               >
                 {/* 曜日ヘッダー行 */}
@@ -190,6 +487,29 @@ export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({
                       aria-label={`${item.dayOfWeek} 日付`}
                     />
                   </div>
+
+                  {/* マイ定番枠1クリック挿入ピル */}
+                  {!item.isOff && quickTags.length > 0 && (
+                    <div className="day-quick-tags-bar">
+                      {quickTags.map((qt) => (
+                        <button
+                          key={qt.id}
+                          type="button"
+                          className="day-quick-tag-btn"
+                          title={`「${qt.title}」をこの曜日にセット`}
+                          onClick={() =>
+                            onUpdateItem(index, {
+                              title: qt.title,
+                              category: qt.category,
+                              badgeText: qt.badgeText ?? '',
+                            })
+                          }
+                        >
+                          {qt.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
                   {/* お休みトグルボタン */}
                   <div className="day-card-off-toggle">

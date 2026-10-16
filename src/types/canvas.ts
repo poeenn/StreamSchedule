@@ -1,4 +1,4 @@
-import { DayOfWeek, ResolutionPreset } from './schedule';
+import { DayOfWeek, LayoutType, ResolutionPreset } from './schedule';
 
 export interface CardRect {
   index: number;
@@ -54,6 +54,6 @@ export type CanvasLayout = CalculatedLayout;
 
 export interface RenderOptions {
   resolution: ResolutionPreset;
-  layoutType?: 'side-avatar' | 'wide-grid';
+  layoutType?: LayoutType;
   showCredit?: boolean;
 }

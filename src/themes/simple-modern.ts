@@ -3,12 +3,15 @@ import { ScheduleTheme } from '../types/theme';
 export const simpleModernTheme: ScheduleTheme = {
   id: 'simple-modern',
   name: 'シンプルモダン',
-  description: '洗練されたミニマルデザイン。高い視認性と実用性を備えた万能スタイル。',
+  description: '洗練されたスタジオミニマルデザイン。高い視認性と実用性を備えた万能スタイル。',
   previewThumbnail: '#2563eb',
+  previewGradient: ['#f8fafc', '#e2e8f0'],
+  badgeLabel: '✨ クール・万能モダン',
   colors: {
     background: '#f8fafc',
+    bgGradientEnd: '#edf2f7',
     bgGlowColor: 'rgba(37, 99, 235, 0.08)',
-    cardBg: 'rgba(255, 255, 255, 0.98)',
+    cardBg: 'rgba(255, 255, 255, 0.96)',
     cardBorder: 'rgba(203, 213, 225, 0.9)',
     cardShadow: 'rgba(15, 23, 42, 0.08)',
     textPrimary: '#0f172a',
@@ -32,14 +35,15 @@ export const simpleModernTheme: ScheduleTheme = {
     creditText: '#94a3b8',
   },
   typography: {
-    titleFont: "'Inter', 'Helvetica Neue', Arial, sans-serif",
-    dayFont: "'Inter', 'Helvetica Neue', Arial, sans-serif",
-    bodyFont: "'Noto Sans JP', 'Hiragino Sans', sans-serif",
+    titleFont: "'Inter', 'Zen Kaku Gothic New', 'Helvetica Neue', Arial, sans-serif",
+    dayFont: "'Inter', 'Zen Kaku Gothic New', 'Helvetica Neue', Arial, sans-serif",
+    bodyFont: "'Zen Kaku Gothic New', 'Noto Sans JP', 'Hiragino Sans', sans-serif",
   },
   decorations: {
     patternType: 'stripes',
     patternOpacity: 0.08,
-    cardCornerRadius: 8,
+    cardCornerRadius: 10,
     cardGlow: false,
+    frameStyle: 'modern',
   },
 };

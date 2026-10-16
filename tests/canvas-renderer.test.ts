@@ -4,6 +4,9 @@ import {
   renderScheduleToCanvas,
   drawRoundedRect,
   wrapText,
+  applyAlphaToColor,
+  getContrastTextColor,
+  resolveEffectiveTheme,
   DAY_OF_WEEK_JA,
   CATEGORY_LABELS,
 } from '../src/core/canvas-renderer';
@@ -26,6 +29,7 @@ describe('Canvas Renderer', () => {
       fill: vi.fn(),
       fillRect: vi.fn(),
       fillText: vi.fn(),
+      setLineDash: vi.fn(),
       measureText: vi.fn().mockImplementation((text: string) => ({
         width: text.length * 10,
       })),
@@ -42,6 +46,7 @@ describe('Canvas Renderer', () => {
       strokeStyle: '',
       lineWidth: 1,
       font: '',
+      filter: 'none',
       textAlign: 'left',
       textBaseline: 'top',
       shadowColor: '',
@@ -73,6 +78,33 @@ describe('Canvas Renderer', () => {
       }
     });
 
+    it('applyAlphaToColor converts hex and rgba strings with specified alpha', () => {
+      expect(applyAlphaToColor('#00f3ff', 0.5)).toBe('rgba(0, 243, 255, 0.5)');
+      expect(applyAlphaToColor('#fff', 0.8)).toBe('rgba(255, 255, 255, 0.8)');
+      expect(applyAlphaToColor('rgba(13, 21, 39, 0.85)', 0.4)).toBe('rgba(13, 21, 39, 0.4)');
+    });
+
+    it('getContrastTextColor picks dark text for bright colors and light text for dark colors', () => {
+      expect(getContrastTextColor('#fde047')).toBe('#0f172a');
+      expect(getContrastTextColor('#111827')).toBe('#ffffff');
+    });
+
+    it('resolveEffectiveTheme applies fontStyle, customAccentColor, and cardOpacity', () => {
+      const base = getThemeById('cyber-neon');
+      const customized = resolveEffectiveTheme(base, {
+        ...DEFAULT_SCHEDULE_DATA,
+        fontStyle: 'serif',
+        customAccentColor: '#ff6b9d',
+        cardOpacity: 0.5,
+      });
+
+      expect(customized.typography.bodyFont).toContain('Shippori Mincho');
+      expect(customized.colors.accentPrimary).toBe('#ff6b9d');
+      expect(customized.colors.headerAccent).toBe('#ff6b9d');
+      expect(customized.colors.timeBadgeBg).toBe('#ff6b9d');
+      expect(customized.colors.cardBg).toBe('rgba(13, 21, 39, 0.5)');
+    });
+
     it('drawRoundedRect uses native roundRect when available', () => {
       const ctx = createMockContext();
       (ctx as unknown as { roundRect: ReturnType<typeof vi.fn> }).roundRect = vi.fn();
@@ -91,7 +123,6 @@ describe('Canvas Renderer', () => {
 
     it('drawRoundedRect uses arcTo fallback when roundRect is undefined', () => {
       const ctx = createMockContext();
-      // roundRect is not defined in mock context
       drawRoundedRect(ctx, 10, 20, 100, 50, 8);
 
       expect(ctx.beginPath).toHaveBeenCalled();
@@ -108,14 +139,12 @@ describe('Canvas Renderer', () => {
 
       it('returns single line if text fits within maxWidth', () => {
         const ctx = createMockContext();
-        // 5 chars * 10 = 50px < 100px
         const lines = wrapText(ctx, 'Short', 100);
         expect(lines).toEqual(['Short']);
       });
 
       it('wraps long text across multiple lines', () => {
         const ctx = createMockContext();
-        // 20 chars = 200px > 80px
         const lines = wrapText(ctx, '12345678901234567890', 80, 3);
         expect(lines.length).toBeGreaterThan(1);
         expect(lines.length).toBeLessThanOrEqual(3);
@@ -123,7 +152,6 @@ describe('Canvas Renderer', () => {
 
       it('appends ellipsis on final line when exceeding maxLines', () => {
         const ctx = createMockContext();
-        // Very long string
         const longText = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz';
         const lines = wrapText(ctx, longText, 50, 2);
         expect(lines.length).toBe(2);
@@ -132,7 +160,7 @@ describe('Canvas Renderer', () => {
     });
   });
 
-  describe('renderScheduleToContext Pipeline', () => {
+  describe('renderScheduleToContext Pipeline (8 Themes & Custom Features)', () => {
     it.each(THEMES)('renders successfully for theme: $name ($id)', async (theme) => {
       const ctx = createMockContext();
       await renderScheduleToContext(ctx, DEFAULT_SCHEDULE_DATA, theme);
@@ -156,6 +184,47 @@ describe('Canvas Renderer', () => {
         resolution: '1200x675',
       });
       expect(ctx1200.fillRect).toHaveBeenCalled();
+    });
+
+    it('renders custom background image with blur and overlay when provided', async () => {
+      const ctx = createMockContext();
+      const mockBgImg = { naturalWidth: 1920, naturalHeight: 1080 } as unknown as HTMLImageElement;
+
+      await renderScheduleToContext(
+        ctx,
+        {
+          ...DEFAULT_SCHEDULE_DATA,
+          bgOverlayOpacity: 0.45,
+          bgBlur: 6,
+        },
+        getThemeById('sakura-wa'),
+        null,
+        {
+          customBgImage: mockBgImg,
+        }
+      );
+
+      expect(ctx.drawImage).toHaveBeenCalledWith(mockBgImg, 0, 0, 1920, 1080);
+    });
+
+    it('renders platform badges and fanMark in header', async () => {
+      const ctx = createMockContext();
+      await renderScheduleToContext(ctx, {
+        ...DEFAULT_SCHEDULE_DATA,
+        streamerName: 'テスト配信者',
+        fanMark: '🌸🎮',
+        platforms: ['YouTube', 'Twitch'],
+      });
+
+      const fillTextCalls = (ctx.fillText as unknown as { mock: { calls: unknown[][] } }).mock.calls;
+      const hasNameWithMark = fillTextCalls.some(
+        (call) => typeof call[0] === 'string' && call[0].includes('テスト配信者 🌸🎮')
+      );
+      const hasTwitch = fillTextCalls.some(
+        (call) => typeof call[0] === 'string' && call[0] === 'Twitch'
+      );
+      expect(hasNameWithMark).toBe(true);
+      expect(hasTwitch).toBe(true);
     });
 
     it('draws credit watermark when showCredit is true', async () => {
@@ -211,28 +280,26 @@ describe('Canvas Renderer', () => {
       expect(offDrawn).toBe(true);
     });
 
-    it('synthesizes avatar image when provided', async () => {
-      const ctx = createMockContext();
+    it('synthesizes avatar image in side-avatar and left-avatar modes, and skips in wide-grid', async () => {
       const mockImg = { naturalWidth: 600, naturalHeight: 900 } as unknown as HTMLImageElement;
 
+      const ctxLeft = createMockContext();
       await renderScheduleToContext(
-        ctx,
-        DEFAULT_SCHEDULE_DATA,
+        ctxLeft,
+        { ...DEFAULT_SCHEDULE_DATA, layoutType: 'left-avatar' },
         getThemeById('cyber-neon'),
-        mockImg,
-        {
-          avatarConfig: {
-            scale: 1.2,
-            offsetX: 20,
-            offsetY: -10,
-            flipHorizontal: true,
-            opacity: 0.85,
-            alignment: 'right',
-          },
-        }
+        mockImg
       );
+      expect(ctxLeft.drawImage).toHaveBeenCalled();
 
-      expect(ctx.drawImage).toHaveBeenCalledWith(mockImg, expect.any(Number), expect.any(Number), expect.any(Number), expect.any(Number));
+      const ctxWide = createMockContext();
+      await renderScheduleToContext(
+        ctxWide,
+        { ...DEFAULT_SCHEDULE_DATA, layoutType: 'wide-grid' },
+        getThemeById('cyber-neon'),
+        mockImg
+      );
+      expect(ctxWide.drawImage).not.toHaveBeenCalled();
     });
   });
 

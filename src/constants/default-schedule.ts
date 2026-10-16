@@ -1,4 +1,4 @@
-import { ScheduleData, ScheduleItem } from '../types/schedule';
+import { QuickTagPreset, ScheduleData, ScheduleItem, StreamPlatform } from '../types/schedule';
 
 export const DEFAULT_SCHEDULE_ITEMS: ScheduleItem[] = [
   {
@@ -80,4 +80,79 @@ export const DEFAULT_SCHEDULE_DATA: ScheduleData = {
   themeId: 'cyber-neon',
   resolution: '1920x1080',
   showCredit: true,
+  layoutType: 'side-avatar',
+  fontStyle: 'theme',
+  customAccentColor: '',
+  cardOpacity: 0.88,
+  platforms: ['YouTube'],
+  fanMark: '🎮✨',
+  customBgDataUrl: null,
+  bgOverlayOpacity: 0.35,
+  bgBlur: 0,
 };
+
+export const STREAM_PLATFORMS: StreamPlatform[] = [
+  'YouTube',
+  'Twitch',
+  'TwitCasting',
+  'IRIAM',
+  'TikTok',
+  '17LIVE',
+  'ニコニコ',
+];
+
+export const ACCENT_COLOR_PRESETS: { label: string; color: string }[] = [
+  { label: 'ネオンシアン', color: '#00f3ff' },
+  { label: 'サクラピンク', color: '#ff6b9d' },
+  { label: 'ルビーレッド', color: '#ef4444' },
+  { label: 'サンシャインオレンジ', color: '#f97316' },
+  { label: 'スターゴールド', color: '#eab308' },
+  { label: 'エメラルド', color: '#10b981' },
+  { label: 'ロイヤルブルー', color: '#3b82f6' },
+  { label: 'アメジストパープル', color: '#a855f7' },
+  { label: 'シャンパンゴールド', color: '#e5b95f' },
+];
+
+export const DEFAULT_QUICK_TAGS: QuickTagPreset[] = [
+  {
+    id: 'qt-chat',
+    label: '💬 雑談配信',
+    title: 'まったり雑談配信',
+    category: 'chat',
+  },
+  {
+    id: 'qt-participate',
+    label: '🎮 参加型ゲーム',
+    title: '視聴者参加型カスタムマッチ',
+    category: 'game',
+    badgeText: '参加型',
+  },
+  {
+    id: 'qt-sing',
+    label: '🎤 歌枠',
+    title: 'リクエスト歌枠♪',
+    category: 'sing',
+    badgeText: '歌枠',
+  },
+  {
+    id: 'qt-collab',
+    label: '🤝 コラボ配信',
+    title: 'スペシャルコラボ配信！',
+    category: 'collab',
+    badgeText: 'コラボ',
+  },
+  {
+    id: 'qt-endurance',
+    label: '🔥 耐久枠',
+    title: 'クリアするまで終われない耐久配信',
+    category: 'game',
+    badgeText: '耐久',
+  },
+  {
+    id: 'qt-event',
+    label: '🎉 記念・告知枠',
+    title: '特別記念＆お知らせ配信✨',
+    category: 'event',
+    badgeText: '重大告知',
+  },
+];

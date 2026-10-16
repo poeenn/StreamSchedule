@@ -3,14 +3,17 @@ import { ScheduleTheme } from '../types/theme';
 export const pastelPopTheme: ScheduleTheme = {
   id: 'pastel-pop',
   name: 'パステルポップ',
-  description: 'やわらかくキュートなパステル調。ドット柄とふんわり角丸の癒し系スタイル。',
+  description: 'やわらかくキュートなパステル調。ドット柄とキラキラ星モチーフの癒し系テンプレート。',
   previewThumbnail: '#ff8da1',
+  previewGradient: ['#fff9fa', '#fde4ec'],
+  badgeLabel: '🎀 かわいい・パステル',
   colors: {
     background: '#fff9fa',
-    bgGlowColor: 'rgba(255, 141, 161, 0.15)',
+    bgGradientEnd: '#fdf2f4',
+    bgGlowColor: 'rgba(255, 141, 161, 0.18)',
     cardBg: 'rgba(255, 255, 255, 0.9)',
-    cardBorder: 'rgba(255, 141, 161, 0.4)',
-    cardShadow: 'rgba(255, 141, 161, 0.2)',
+    cardBorder: 'rgba(255, 141, 161, 0.45)',
+    cardShadow: 'rgba(255, 141, 161, 0.22)',
     textPrimary: '#4a3e4a',
     textSecondary: '#8d7b8d',
     accentPrimary: '#ff8da1',
@@ -38,8 +41,9 @@ export const pastelPopTheme: ScheduleTheme = {
   },
   decorations: {
     patternType: 'dots',
-    patternOpacity: 0.15,
+    patternOpacity: 0.16,
     cardCornerRadius: 18,
     cardGlow: false,
+    frameStyle: 'ribbon',
   },
 };

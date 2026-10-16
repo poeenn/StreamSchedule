@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import {
   getWeekMonday,
+  getWeekSunday,
+  getDayOfWeekFromDate,
   generateWeekDates,
+  generate7DayScheduleMeta,
+  formatAny7DaysPeriod,
   advanceToNextWeek,
   formatDisplayDate,
   formatWeekPeriod,
@@ -9,10 +13,10 @@ import {
 } from '../src/core/date-utils';
 
 describe('date-utils', () => {
-  describe('getWeekMonday', () => {
+  describe('getWeekMonday & getWeekSunday', () => {
     it('returns the same date when given date is Monday', () => {
       // 2026-10-19 is Monday
-      const monday = new Date(2026, 9, 19, 12, 0, 0); // Month is 0-indexed: 9 = October
+      const monday = new Date(2026, 9, 19, 12, 0, 0);
       const result = getWeekMonday(monday);
       expect(result.getFullYear()).toBe(2026);
       expect(result.getMonth()).toBe(9);
@@ -45,9 +49,18 @@ describe('date-utils', () => {
       expect(result.getMonth()).toBe(9); // October
       expect(result.getDate()).toBe(26);
     });
+
+    it('getWeekSunday returns Sunday of the current week', () => {
+      const wednesday = new Date(2026, 9, 21, 12, 0, 0);
+      const sun = getWeekSunday(wednesday);
+      expect(sun.getFullYear()).toBe(2026);
+      expect(sun.getMonth()).toBe(9);
+      expect(sun.getDate()).toBe(18); // 2026-10-18 is Sunday
+      expect(getDayOfWeekFromDate(sun)).toBe('SUN');
+    });
   });
 
-  describe('generateWeekDates', () => {
+  describe('generateWeekDates & generate7DayScheduleMeta', () => {
     it('generates 7 dates starting from Monday in MM/DD format', () => {
       const monday = new Date(2026, 9, 19);
       const dates = generateWeekDates(monday);
@@ -59,6 +72,21 @@ describe('date-utils', () => {
       const monday = new Date(2026, 9, 26);
       const dates = generateWeekDates(monday);
       expect(dates).toEqual(['10/26', '10/27', '10/28', '10/29', '10/30', '10/31', '11/01']);
+    });
+
+    it('generate7DayScheduleMeta supports Sunday-start and arbitrary start dates', () => {
+      const sundayStart = new Date(2026, 9, 18); // 2026-10-18 (SUN)
+      const meta = generate7DayScheduleMeta(sundayStart);
+      expect(meta.periodText).toBe('2026.10.18 - 10.24');
+      expect(meta.days).toHaveLength(7);
+      expect(meta.days[0]).toEqual({ dayOfWeek: 'SUN', dateString: '10/18' });
+      expect(meta.days[1]).toEqual({ dayOfWeek: 'MON', dateString: '10/19' });
+      expect(meta.days[6]).toEqual({ dayOfWeek: 'SAT', dateString: '10/24' });
+    });
+
+    it('formatAny7DaysPeriod handles year rollover', () => {
+      const dec28 = new Date(2026, 11, 28);
+      expect(formatAny7DaysPeriod(dec28)).toBe('2026.12.28 - 2027.01.03');
     });
   });
 

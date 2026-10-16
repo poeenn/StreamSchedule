@@ -6,8 +6,8 @@ export interface DrawAvatarOptions {
   enableDimmerMask?: boolean;
   /** ディマーグラデーションの基本色 (通常はテーマの背景色) */
   dimmerColor?: string;
-  /** ディマーの向き ('to-left' | 'to-bottom' | 'radial') */
-  dimmerDirection?: 'to-left' | 'to-bottom' | 'radial';
+  /** ディマーの向き ('to-left' | 'to-right' | 'to-bottom' | 'radial') */
+  dimmerDirection?: 'to-left' | 'to-right' | 'to-bottom' | 'radial';
 }
 
 /**
@@ -77,7 +77,7 @@ export function drawAvatarDimmerMask(
   ctx: CanvasRenderingContext2D,
   bounds: CanvasArea,
   color: string = 'rgba(7, 10, 19, 0.7)',
-  direction: 'to-left' | 'to-bottom' | 'radial' = 'to-left'
+  direction: 'to-left' | 'to-right' | 'to-bottom' | 'radial' = 'to-left'
 ): void {
   ctx.save();
 
@@ -94,6 +94,19 @@ export function drawAvatarDimmerMask(
     gradient.addColorStop(1, color);
     ctx.fillStyle = gradient;
     ctx.fillRect(bounds.x - 80, bounds.y, bounds.width + 80, bounds.height);
+  } else if (direction === 'to-right') {
+    // 左立ち絵モード用: 立ち絵エリアの左端から右（スケジュール側）に向かって徐々に濃くなるグラデーション
+    const gradient = ctx.createLinearGradient(
+      bounds.x,
+      bounds.y,
+      bounds.x + bounds.width,
+      bounds.y
+    );
+    gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    gradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.2)');
+    gradient.addColorStop(1, color);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(bounds.x, bounds.y, bounds.width + 80, bounds.height);
   } else if (direction === 'to-bottom') {
     // 立ち絵の足元をフェードアウトさせるグラデーション
     const gradient = ctx.createLinearGradient(
@@ -113,13 +126,6 @@ export function drawAvatarDimmerMask(
 
 /**
  * 立ち絵画像を Canvas 2D コンテキストに変形合成する
- *
- * @param ctx 描画先 2D コンテキスト
- * @param image 立ち絵画像ソース (未ロード時は安全にスキップ)
- * @param config スケール、オフセット、左右反転、透明度設定
- * @param bounds 立ち絵配置領域矩形
- * @param options ディマーマスク等の描画オプション
- * @returns 描画が実行された場合は true、画像なし/未完了でスキップされた場合は false
  */
 export function drawAvatar(
   ctx: CanvasRenderingContext2D,

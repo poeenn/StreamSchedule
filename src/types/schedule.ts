@@ -22,6 +22,19 @@ export interface ScheduleItem {
 
 export type ResolutionPreset = '1920x1080' | '1200x675';
 
+export type LayoutType = 'side-avatar' | 'left-avatar' | 'wide-grid';
+
+export type FontStyleType = 'theme' | 'gothic' | 'rounded' | 'serif';
+
+export type StreamPlatform =
+  | 'YouTube'
+  | 'Twitch'
+  | 'TwitCasting'
+  | 'IRIAM'
+  | 'TikTok'
+  | '17LIVE'
+  | 'ニコニコ';
+
 export interface ResolutionConfig {
   id: ResolutionPreset;
   label: string;            // 表示名 ('フルHD (1920x1080)' / 'Xタイムライン最適化 (1200x675)')
@@ -43,19 +56,42 @@ export interface CharacterImageConfig {
 
 export type AvatarConfig = CharacterImageConfig;
 
-export interface ScheduleData {
-  streamerName: string;         // 配信者名 (例: 'ぽえーん / poeenn')
-  streamerHandle: string;       // Xアカウント (例: '@poeenn')
-  weekTitle: string;            // タイトル (例: 'WEEKLY SCHEDULE', '週間配信予定')
-  weekPeriodText: string;       // 期間テキスト (例: '2026.10.19 - 10.25')
-  hashtag: string;              // ハッシュタグ (例: '#配信スケジュール #ぽえらいぶ')
-  items: ScheduleItem[];        // 7日分の枠情報 (月〜日)
-  themeId: string;              // 選択テーマID
-  resolution: ResolutionPreset; // 選択解像度
-  showCredit: boolean;          // クレジット透かしの表示 (初期値 true)
+export interface QuickTagPreset {
+  id: string;
+  label: string;
+  title: string;
+  category: StreamCategory;
+  badgeText?: string;
 }
 
-/**
- * WeeklySchedule alias for ScheduleData
- */
+export interface ScheduleData {
+  streamerName: string;           // 配信者名 (例: 'ぽえーん / poeenn')
+  streamerHandle: string;         // Xアカウント (例: '@poeenn')
+  weekTitle: string;              // タイトル (例: 'WEEKLY SCHEDULE', '週間配信予定')
+  weekPeriodText: string;         // 期間テキスト (例: '2026.10.19 - 10.25')
+  hashtag: string;                // ハッシュタグ (例: '#配信スケジュール #ぽえらいぶ')
+  items: ScheduleItem[];          // 7日分の枠情報 (月〜日)
+  themeId: string;                // 選択テーマID
+  resolution: ResolutionPreset;   // 選択解像度
+  showCredit: boolean;            // クレジット透かしの表示 (初期値 true)
+  // Phase 4: デザイン＆ジェネレーター拡張設定
+  layoutType?: LayoutType;        // 構図 ('side-avatar': 右立ち絵, 'left-avatar': 左立ち絵, 'wide-grid': 立ち絵なしワイド)
+  fontStyle?: FontStyleType;      // フォント選択 ('theme' | 'gothic' | 'rounded' | 'serif')
+  customAccentColor?: string;     // 推し色（カスタムアクセントカラー HEX）
+  cardOpacity?: number;           // カード背景の不透明度 (0.3 〜 1.0)
+  platforms?: string[];           // 配信先プラットフォームバッジ (YouTube, Twitch 等)
+  fanMark?: string;               // 推しマーク / ファンマーク (例: '🎮🌸')
+  customBgDataUrl?: string | null;// カスタム背景画像の DataURL
+  bgOverlayOpacity?: number;      // カスタム背景の暗さオーバーレイ (0 〜 0.8)
+  bgBlur?: number;                // カスタム背景のぼかし (0 〜 16 px)
+}
+
 export type WeeklySchedule = ScheduleData;
+
+export interface SettingsPreset {
+  id: string;
+  name: string;
+  createdAt: string;
+  schedule: ScheduleData;
+  avatarConfig: Omit<CharacterImageConfig, 'imageElement'>;
+}

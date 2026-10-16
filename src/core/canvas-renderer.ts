@@ -1,13 +1,20 @@
-import { ScheduleData, DayOfWeek, StreamCategory, CharacterImageConfig } from '../types/schedule';
+import {
+  ScheduleData,
+  DayOfWeek,
+  StreamCategory,
+  CharacterImageConfig,
+  FontStyleType,
+} from '../types/schedule';
 import { ScheduleTheme } from '../types/theme';
-import { RenderOptions } from '../types/canvas';
+import { CalculatedLayout, RenderOptions } from '../types/canvas';
 import { calculateLayout } from './layout-calculator';
-import { drawAvatar } from './avatar-compositor';
+import { drawAvatar, getImageDimensions } from './avatar-compositor';
 import { getThemeById } from '../themes';
 
 export interface RenderScheduleOptions extends Partial<RenderOptions> {
   avatarConfig?: CharacterImageConfig;
   enableDimmerMask?: boolean;
+  customBgImage?: CanvasImageSource | null;
 }
 
 /**
@@ -37,6 +44,125 @@ export const CATEGORY_LABELS: Record<StreamCategory, string> = {
 };
 
 /**
+ * プラットフォーム別のバッジ配色定義
+ */
+export const PLATFORM_BADGE_COLORS: Record<string, { bg: string; text: string }> = {
+  YouTube: { bg: '#ef4444', text: '#ffffff' },
+  Twitch: { bg: '#9146ff', text: '#ffffff' },
+  TwitCasting: { bg: '#0284c7', text: '#ffffff' },
+  IRIAM: { bg: '#ec4899', text: '#ffffff' },
+  TikTok: { bg: '#111827', text: '#00f3ff' },
+  '17LIVE': { bg: '#f59e0b', text: '#111827' },
+  ニコニコ: { bg: '#374151', text: '#ffffff' },
+};
+
+/**
+ * HEX または RGB(A) カラー文字列に指定のアルファ値 (0.0 〜 1.0) を適用した rgba() 文字列を返す純粋関数
+ */
+export function applyAlphaToColor(color: string, alpha: number): string {
+  const clampedAlpha = Math.max(0, Math.min(1, alpha));
+  const trimmed = color.trim();
+
+  // #RRGGBB または #RGB
+  if (trimmed.startsWith('#')) {
+    let hex = trimmed.slice(1);
+    if (hex.length === 3) {
+      hex = hex
+        .split('')
+        .map((c) => c + c)
+        .join('');
+    }
+    if (hex.length >= 6) {
+      const r = parseInt(hex.slice(0, 2), 16);
+      const g = parseInt(hex.slice(2, 4), 16);
+      const b = parseInt(hex.slice(4, 6), 16);
+      if (!Number.isNaN(r) && !Number.isNaN(g) && !Number.isNaN(b)) {
+        return `rgba(${r}, ${g}, ${b}, ${clampedAlpha})`;
+      }
+    }
+  }
+
+  // rgba(r, g, b, a) または rgb(r, g, b)
+  const rgbMatch = trimmed.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+  if (rgbMatch) {
+    return `rgba(${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]}, ${clampedAlpha})`;
+  }
+
+  return color;
+}
+
+/**
+ * 背景色の輝度から視認性の高い文字色（白または濃紺）を自動判定する純粋関数
+ */
+export function getContrastTextColor(hexColor: string): string {
+  const trimmed = hexColor.trim();
+  if (!trimmed.startsWith('#')) return '#ffffff';
+  let hex = trimmed.slice(1);
+  if (hex.length === 3) {
+    hex = hex
+      .split('')
+      .map((c) => c + c)
+      .join('');
+  }
+  if (hex.length < 6) return '#ffffff';
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return '#ffffff';
+  // 相対輝度計算
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.62 ? '#0f172a' : '#ffffff';
+}
+
+/**
+ * スケジュール設定（フォント選択、推し色、カード不透明度）をテーマに合成した実効テーマを返す純粋関数
+ */
+export function resolveEffectiveTheme(
+  baseTheme: ScheduleTheme,
+  schedule: ScheduleData
+): ScheduleTheme {
+  let typography = { ...baseTheme.typography };
+  const fontStyle: FontStyleType | undefined = schedule.fontStyle;
+
+  if (fontStyle === 'gothic') {
+    const stack = "'Zen Kaku Gothic New', 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', sans-serif";
+    typography = { titleFont: stack, dayFont: stack, bodyFont: stack };
+  } else if (fontStyle === 'rounded') {
+    const stack = "'M PLUS Rounded 1c', 'Kosugi Maru', sans-serif";
+    typography = { titleFont: stack, dayFont: stack, bodyFont: stack };
+  } else if (fontStyle === 'serif') {
+    const stack = "'Shippori Mincho', 'Noto Serif JP', 'Hiragino Mincho ProN', serif";
+    typography = { titleFont: stack, dayFont: stack, bodyFont: stack };
+  }
+
+  const colors = { ...baseTheme.colors };
+
+  // 推し色（カスタムアクセントカラー）の適用
+  if (schedule.customAccentColor && schedule.customAccentColor.trim().length > 0) {
+    const customColor = schedule.customAccentColor.trim();
+    colors.accentPrimary = customColor;
+    colors.headerAccent = customColor;
+    colors.timeBadgeBg = customColor;
+    colors.timeBadgeText = getContrastTextColor(customColor);
+    colors.cardBorder = applyAlphaToColor(customColor, 0.55);
+    if (baseTheme.decorations.cardGlow) {
+      colors.cardShadow = applyAlphaToColor(customColor, 0.35);
+    }
+  }
+
+  // カード背景不透明度の調整 (0.3 〜 1.0)
+  if (typeof schedule.cardOpacity === 'number' && !Number.isNaN(schedule.cardOpacity)) {
+    colors.cardBg = applyAlphaToColor(baseTheme.colors.cardBg, schedule.cardOpacity);
+  }
+
+  return {
+    ...baseTheme,
+    colors,
+    typography,
+  };
+}
+
+/**
  * 角丸矩形パスを Canvas コンテキストに登録する
  * (ctx.roundRect がない古い環境やモック環境でも安全に動作するフォールバック付き)
  */
@@ -48,7 +174,7 @@ export function drawRoundedRect(
   height: number,
   radius: number
 ): void {
-  const r = Math.min(radius, width / 2, height / 2);
+  const r = Math.min(Math.max(0, radius), width / 2, height / 2);
   ctx.beginPath();
   if (typeof ctx.roundRect === 'function') {
     ctx.roundRect(x, y, width, height, r);
@@ -106,119 +232,398 @@ export function wrapText(
 }
 
 /**
- * 背景グラデーションおよび装飾幾何学パターンを描画する
+ * 4芒星（キラキラ星）を描画するヘルパー
  */
-export function drawBackgroundAndPattern(
+function drawSparkleStar(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  size: number,
+  color: string
+): void {
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - size);
+  ctx.lineTo(cx + size * 0.28, cy - size * 0.28);
+  ctx.lineTo(cx + size, cy);
+  ctx.lineTo(cx + size * 0.28, cy + size * 0.28);
+  ctx.lineTo(cx, cy + size);
+  ctx.lineTo(cx - size * 0.28, cy + size * 0.28);
+  ctx.lineTo(cx - size, cy);
+  ctx.lineTo(cx - size * 0.28, cy - size * 0.28);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+/**
+ * ダイヤ装飾（◆）を描画するヘルパー
+ */
+function drawDiamond(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  size: number,
+  color: string
+): void {
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - size);
+  ctx.lineTo(cx + size * 0.75, cy);
+  ctx.lineTo(cx, cy + size);
+  ctx.lineTo(cx - size * 0.75, cy);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+/**
+ * テンプレート固有の装飾フレームおよび背景モチーフを描画する
+ */
+export function drawTemplateFrameAndMotifs(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
   theme: ScheduleTheme
 ): void {
+  const scale = width / 1920;
+  const frameStyle = theme.decorations.frameStyle ?? 'cyber';
+  const s = (v: number) => Math.round(v * scale);
+
   ctx.save();
 
-  // 1. ベース背景グラデーション
-  const bgGradient = ctx.createLinearGradient(0, 0, width, height);
-  if (theme.id === 'cyber-neon') {
-    bgGradient.addColorStop(0, '#070a13');
-    bgGradient.addColorStop(1, '#0d1527');
-  } else if (theme.id === 'pastel-pop') {
-    bgGradient.addColorStop(0, '#fff9fa');
-    bgGradient.addColorStop(1, '#fdf2f4');
-  } else if (theme.id === 'simple-modern') {
-    bgGradient.addColorStop(0, '#f8fafc');
-    bgGradient.addColorStop(1, '#edf2f7');
-  } else if (theme.id === 'dark-chic') {
-    bgGradient.addColorStop(0, '#121316');
-    bgGradient.addColorStop(1, '#1a1b1f');
-  } else {
-    bgGradient.addColorStop(0, theme.colors.background);
-    bgGradient.addColorStop(1, theme.colors.background);
-  }
-  ctx.fillStyle = bgGradient;
-  ctx.fillRect(0, 0, width, height);
+  if (frameStyle === 'cyber') {
+    // サイバーネオン: 四隅のL字コーナーブラケット & HUDライン
+    const pad = s(24);
+    const len = s(72);
+    ctx.strokeStyle = theme.colors.accentPrimary;
+    ctx.lineWidth = Math.max(2, s(3));
 
-  // 2. 背景グローエフェクト (右上のやわらかな発光)
-  if (theme.colors.bgGlowColor) {
-    try {
-      const glow = ctx.createRadialGradient(
-        width * 0.85,
-        height * 0.2,
-        20,
-        width * 0.85,
-        height * 0.2,
-        width * 0.5
-      );
-      glow.addColorStop(0, theme.colors.bgGlowColor);
-      glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = glow;
-      ctx.fillRect(0, 0, width, height);
-    } catch {
-      // radial gradient mock fallback
-    }
-  }
+    ctx.beginPath();
+    // 左上
+    ctx.moveTo(pad, pad + len);
+    ctx.lineTo(pad, pad);
+    ctx.lineTo(pad + len, pad);
+    // 右上
+    ctx.moveTo(width - pad - len, pad);
+    ctx.lineTo(width - pad, pad);
+    ctx.lineTo(width - pad, pad + len);
+    // 左下
+    ctx.moveTo(pad, height - pad - len);
+    ctx.lineTo(pad, height - pad);
+    ctx.lineTo(pad + len, height - pad);
+    // 右下
+    ctx.moveTo(width - pad - len, height - pad);
+    ctx.lineTo(width - pad, height - pad);
+    ctx.lineTo(width - pad, height - pad - len);
+    ctx.stroke();
 
-  // 3. 装飾幾何学パターン
-  const { patternType, patternOpacity } = theme.decorations;
-  if (patternType !== 'none' && patternOpacity > 0) {
-    ctx.save();
-    ctx.globalAlpha = patternOpacity;
+    // サブアクセントのドット装飾
+    ctx.fillStyle = theme.colors.accentSecondary;
+    ctx.fillRect(pad + len + s(10), pad - s(2), s(24), s(4));
+    ctx.fillRect(width - pad - len - s(34), height - pad - s(2), s(24), s(4));
+  } else if (frameStyle === 'ribbon') {
+    // パステルポップ: ふんわり二重丸枠 & 四隅のキラキラ星
+    const pad = s(22);
+    ctx.strokeStyle = applyAlphaToColor(theme.colors.accentPrimary, 0.5);
+    ctx.lineWidth = Math.max(2, s(3));
+    drawRoundedRect(ctx, pad, pad, width - pad * 2, height - pad * 2, s(28));
+    ctx.stroke();
 
-    if (patternType === 'grid') {
-      const step = 40;
-      ctx.strokeStyle = theme.colors.accentPrimary;
-      ctx.lineWidth = 1;
+    drawSparkleStar(ctx, s(48), s(48), s(14), theme.colors.accentPrimary);
+    drawSparkleStar(ctx, width - s(52), s(52), s(16), theme.colors.accentSecondary);
+    drawSparkleStar(ctx, s(52), height - s(52), s(14), theme.colors.accentSecondary);
+    drawSparkleStar(ctx, width - s(48), height - s(48), s(14), theme.colors.accentPrimary);
+    drawSparkleStar(ctx, width * 0.65, s(65), s(10), theme.colors.accentPrimary);
+  } else if (frameStyle === 'modern') {
+    // シンプルモダン: クリーンな細枠と上部アクセントバー
+    const pad = s(24);
+    ctx.strokeStyle = theme.colors.cardBorder;
+    ctx.lineWidth = Math.max(1, s(2));
+    drawRoundedRect(ctx, pad, pad, width - pad * 2, height - pad * 2, s(12));
+    ctx.stroke();
+
+    ctx.fillStyle = theme.colors.accentPrimary;
+    ctx.fillRect(pad + s(40), pad - s(2), s(160), s(4));
+    ctx.fillStyle = theme.colors.accentSecondary;
+    ctx.fillRect(pad + s(208), pad - s(2), s(48), s(4));
+  } else if (frameStyle === 'luxury') {
+    // ダークシック: シャンパンゴールド二重額縁 & ダイヤオーナメント
+    const outerPad = s(22);
+    const innerPad = s(30);
+    ctx.strokeStyle = applyAlphaToColor(theme.colors.accentPrimary, 0.65);
+    ctx.lineWidth = Math.max(1, s(2));
+    drawRoundedRect(ctx, outerPad, outerPad, width - outerPad * 2, height - outerPad * 2, s(4));
+    ctx.stroke();
+
+    ctx.strokeStyle = applyAlphaToColor(theme.colors.accentSecondary, 0.35);
+    ctx.lineWidth = Math.max(1, s(1));
+    drawRoundedRect(ctx, innerPad, innerPad, width - innerPad * 2, height - innerPad * 2, s(2));
+    ctx.stroke();
+
+    drawDiamond(ctx, outerPad, outerPad, s(8), theme.colors.accentPrimary);
+    drawDiamond(ctx, width - outerPad, outerPad, s(8), theme.colors.accentPrimary);
+    drawDiamond(ctx, outerPad, height - outerPad, s(8), theme.colors.accentPrimary);
+    drawDiamond(ctx, width - outerPad, height - outerPad, s(8), theme.colors.accentPrimary);
+  } else if (frameStyle === 'wafuu') {
+    // 和風・桜ノスタルジー: 和モダン二重角枠 & 舞い散る桜花びらモチーフ
+    const pad = s(24);
+    const inner = s(32);
+    ctx.strokeStyle = applyAlphaToColor(theme.colors.accentPrimary, 0.6);
+    ctx.lineWidth = Math.max(1, s(2));
+    drawRoundedRect(ctx, pad, pad, width - pad * 2, height - pad * 2, s(6));
+    ctx.stroke();
+
+    ctx.strokeStyle = applyAlphaToColor(theme.colors.accentSecondary, 0.45);
+    ctx.lineWidth = Math.max(1, s(1.5));
+    drawRoundedRect(ctx, inner, inner, width - inner * 2, height - inner * 2, s(4));
+    ctx.stroke();
+
+    // 桜の花びらモチーフ (背景の優美なアクセント)
+    const petals = [
+      { x: 0.12, y: 0.1, r: 9 },
+      { x: 0.45, y: 0.08, r: 7 },
+      { x: 0.72, y: 0.12, r: 10 },
+      { x: 0.88, y: 0.18, r: 8 },
+      { x: 0.93, y: 0.42, r: 11 },
+      { x: 0.06, y: 0.55, r: 8 },
+      { x: 0.64, y: 0.88, r: 9 },
+      { x: 0.91, y: 0.82, r: 7 },
+    ];
+    ctx.fillStyle = applyAlphaToColor(theme.colors.accentPrimary, 0.35);
+    for (const p of petals) {
       ctx.beginPath();
-      for (let x = 0; x <= width; x += step) {
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-      }
-      for (let y = 0; y <= height; y += step) {
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-      }
-      ctx.stroke();
-    } else if (patternType === 'dots') {
-      const step = 32;
-      const dotRadius = 2;
-      ctx.fillStyle = theme.colors.accentPrimary;
-      for (let x = step / 2; x < width; x += step) {
-        for (let y = step / 2; y < height; y += step) {
-          ctx.beginPath();
-          ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-    } else if (patternType === 'stripes') {
-      const step = 48;
-      ctx.strokeStyle = theme.colors.accentPrimary;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      for (let x = -height; x <= width; x += step) {
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x + height, height);
-      }
-      ctx.stroke();
+      ctx.arc(Math.round(width * p.x), Math.round(height * p.y), s(p.r), 0, Math.PI * 1.6);
+      ctx.closePath();
+      ctx.fill();
     }
+  } else if (frameStyle === 'galaxy') {
+    // スターライト・ギャラクシー: 星座ライン & 煌めく星屑フレーム
+    const pad = s(24);
+    ctx.strokeStyle = applyAlphaToColor(theme.colors.accentPrimary, 0.45);
+    ctx.lineWidth = Math.max(1, s(2));
+    drawRoundedRect(ctx, pad, pad, width - pad * 2, height - pad * 2, s(16));
+    ctx.stroke();
 
-    ctx.restore();
+    // 星座ライン
+    const constellation = [
+      { x: Math.round(width * 0.58), y: s(55) },
+      { x: Math.round(width * 0.65), y: s(82) },
+      { x: Math.round(width * 0.74), y: s(62) },
+      { x: Math.round(width * 0.82), y: s(95) },
+      { x: Math.round(width * 0.9), y: s(68) },
+    ];
+    ctx.strokeStyle = applyAlphaToColor(theme.colors.accentPrimary, 0.3);
+    ctx.lineWidth = Math.max(1, s(1.5));
+    ctx.beginPath();
+    for (let i = 0; i < constellation.length; i++) {
+      if (i === 0) ctx.moveTo(constellation[i].x, constellation[i].y);
+      else ctx.lineTo(constellation[i].x, constellation[i].y);
+    }
+    ctx.stroke();
+
+    for (const pt of constellation) {
+      drawSparkleStar(ctx, pt.x, pt.y, s(8), theme.colors.accentPrimary);
+    }
+    drawSparkleStar(ctx, s(48), s(48), s(12), theme.colors.accentPrimary);
+    drawSparkleStar(ctx, width - s(48), height - s(48), s(12), theme.colors.accentSecondary);
+  } else if (frameStyle === 'stitch') {
+    // カフェ・ナチュラルルーム: カフェボード風ステッチ枠
+    const pad = s(22);
+    ctx.strokeStyle = applyAlphaToColor(theme.colors.accentPrimary, 0.55);
+    ctx.lineWidth = Math.max(2, s(3));
+    if (typeof (ctx as { setLineDash?: (segments: number[]) => void }).setLineDash === 'function') {
+      (ctx as { setLineDash: (segments: number[]) => void }).setLineDash([s(12), s(8)]);
+    }
+    drawRoundedRect(ctx, pad, pad, width - pad * 2, height - pad * 2, s(20));
+    ctx.stroke();
+    if (typeof (ctx as { setLineDash?: (segments: number[]) => void }).setLineDash === 'function') {
+      (ctx as { setLineDash: (segments: number[]) => void }).setLineDash([]);
+    }
+  } else if (frameStyle === 'comic') {
+    // ポップ・コミック Y2K: 太黒枠＋ポップシャドウフレーム
+    const pad = s(22);
+    // オフセット影枠
+    ctx.fillStyle = applyAlphaToColor(theme.colors.accentPrimary, 0.25);
+    drawRoundedRect(ctx, pad + s(6), pad + s(6), width - pad * 2, height - pad * 2, s(14));
+    ctx.strokeStyle = '#111827';
+    ctx.lineWidth = Math.max(2, s(4));
+    drawRoundedRect(ctx, pad, pad, width - pad * 2, height - pad * 2, s(14));
+    ctx.stroke();
+
+    drawSparkleStar(ctx, width - s(56), s(56), s(16), theme.colors.accentPrimary);
+    drawSparkleStar(ctx, s(56), height - s(56), s(14), theme.colors.accentSecondary);
   }
 
   ctx.restore();
 }
 
 /**
- * ヘッダー領域（タイトル・日付・配信者名・ハッシュタグ）を描画する
+ * 背景グラデーション、カスタム背景画像、および装飾パターンを描画する
+ */
+export function drawBackgroundAndPattern(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  theme: ScheduleTheme,
+  customBgImage?: CanvasImageSource | null,
+  bgOverlayOpacity: number = 0.35,
+  bgBlur: number = 0
+): void {
+  ctx.save();
+
+  // 1. ベース背景グラデーション
+  const bgGradient = ctx.createLinearGradient(0, 0, width, height);
+  const startColor = theme.colors.background;
+  const endColor = theme.colors.bgGradientEnd ?? theme.colors.background;
+  bgGradient.addColorStop(0, startColor);
+  bgGradient.addColorStop(1, endColor);
+  ctx.fillStyle = bgGradient;
+  ctx.fillRect(0, 0, width, height);
+
+  // 2. カスタム背景画像が指定されている場合はカバー描画 + ぼかし + 暗さオーバーレイ
+  if (customBgImage) {
+    const dims = getImageDimensions(customBgImage);
+    if (dims) {
+      ctx.save();
+      const scaleFactor = width / 1920;
+      if (bgBlur > 0 && 'filter' in ctx) {
+        try {
+          (ctx as CanvasRenderingContext2D & { filter: string }).filter = `blur(${Math.round(
+            bgBlur * scaleFactor
+          )}px)`;
+        } catch {
+          // filter non-supported fallback
+        }
+      }
+
+      // アスペクト比を維持してキャンバス全体を埋める (object-fit: cover)
+      const imgRatio = dims.width / dims.height;
+      const canvasRatio = width / height;
+      let drawW = width;
+      let drawH = height;
+      let offsetX = 0;
+      let offsetY = 0;
+
+      if (imgRatio > canvasRatio) {
+        drawH = height;
+        drawW = height * imgRatio;
+        offsetX = (width - drawW) / 2;
+      } else {
+        drawW = width;
+        drawH = width / imgRatio;
+        offsetY = (height - drawH) / 2;
+      }
+
+      ctx.drawImage(customBgImage, offsetX, offsetY, drawW, drawH);
+      if ('filter' in ctx) {
+        try {
+          (ctx as CanvasRenderingContext2D & { filter: string }).filter = 'none';
+        } catch {
+          // ignore
+        }
+      }
+      ctx.restore();
+
+      // 可読性確保のための暗さオーバーレイ (0% 〜 80%)
+      const clampedOverlay = Math.max(0, Math.min(0.85, bgOverlayOpacity));
+      if (clampedOverlay > 0) {
+        ctx.save();
+        ctx.fillStyle = `rgba(7, 10, 19, ${clampedOverlay})`;
+        ctx.fillRect(0, 0, width, height);
+        ctx.restore();
+      }
+    }
+  } else {
+    // 3. 標準テンプレート背景グローエフェクト (右上のやわらかな発光)
+    if (theme.colors.bgGlowColor) {
+      try {
+        const glow = ctx.createRadialGradient(
+          width * 0.85,
+          height * 0.2,
+          20,
+          width * 0.85,
+          height * 0.2,
+          width * 0.55
+        );
+        glow.addColorStop(0, theme.colors.bgGlowColor);
+        glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, width, height);
+      } catch {
+        // radial gradient mock fallback
+      }
+    }
+
+    // 4. 装飾幾何学パターン
+    const { patternType, patternOpacity } = theme.decorations;
+    if (patternType !== 'none' && patternOpacity > 0) {
+      ctx.save();
+      ctx.globalAlpha = patternOpacity;
+
+      if (patternType === 'grid') {
+        const step = 40;
+        ctx.strokeStyle = theme.colors.accentPrimary;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let x = 0; x <= width; x += step) {
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+        }
+        for (let y = 0; y <= height; y += step) {
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+        }
+        ctx.stroke();
+      } else if (patternType === 'dots') {
+        const step = 36;
+        const dotRadius = 2;
+        ctx.fillStyle = theme.colors.accentPrimary;
+        for (let x = step / 2; x < width; x += step) {
+          for (let y = step / 2; y < height; y += step) {
+            ctx.beginPath();
+            ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      } else if (patternType === 'stripes') {
+        const step = 48;
+        ctx.strokeStyle = theme.colors.accentPrimary;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let x = -height; x <= width; x += step) {
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x + height, height);
+        }
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+  }
+
+  // 5. テンプレート固有の装飾フレーム＆モチーフ描画
+  drawTemplateFrameAndMotifs(ctx, width, height, theme);
+
+  ctx.restore();
+}
+
+/**
+ * ヘッダー領域（タイトル・日付・配信者名・推しマーク・プラットフォームバッジ・ハッシュタグ）を描画する
  */
 export function drawHeader(
   ctx: CanvasRenderingContext2D,
   schedule: ScheduleData,
   theme: ScheduleTheme,
-  scale: number
+  scale: number,
+  headerLayout?: CalculatedLayout['header']
 ): void {
   ctx.save();
   ctx.textBaseline = 'top';
 
-  const marginX = Math.round(60 * scale);
+  const marginX = headerLayout?.titleX ?? Math.round(60 * scale);
   const startY = Math.round(48 * scale);
 
   // 1. タイトル横のアクセントバー
@@ -235,23 +640,66 @@ export function drawHeader(
   ctx.fillText(schedule.weekTitle || 'WEEKLY SCHEDULE', titleX, startY);
 
   // 3. 期間テキスト (2026.10.19 - 10.25)
-  const titleMetrics = ctx.measureText ? ctx.measureText(schedule.weekTitle || 'WEEKLY SCHEDULE') : { width: 400 * scale };
+  const titleMetrics = ctx.measureText
+    ? ctx.measureText(schedule.weekTitle || 'WEEKLY SCHEDULE')
+    : { width: 400 * scale };
   const periodX = titleX + titleMetrics.width + Math.round(24 * scale);
   ctx.font = `600 ${Math.round(22 * scale)}px ${theme.typography.dayFont}`;
   ctx.fillStyle = theme.colors.textSecondary;
   ctx.fillText(schedule.weekPeriodText || '', periodX, startY + Math.round(16 * scale));
 
-  // 4. 配信者名 & Xアカウント
+  // 4. 配信者名 & 推しマーク & Xアカウント & プラットフォームバッジ
   const streamerY = startY + Math.round(56 * scale);
+  const displayName = schedule.fanMark
+    ? `${schedule.streamerName || ''} ${schedule.fanMark}`.trim()
+    : schedule.streamerName || '';
+
   ctx.font = `bold ${Math.round(24 * scale)}px ${theme.typography.bodyFont}`;
   ctx.fillStyle = theme.colors.textPrimary;
-  ctx.fillText(schedule.streamerName || '', titleX, streamerY);
+  ctx.fillText(displayName, titleX, streamerY);
+
+  let currentX = titleX;
+  const nameMetrics = ctx.measureText ? ctx.measureText(displayName) : { width: 140 * scale };
+  currentX += nameMetrics.width + Math.round(14 * scale);
 
   if (schedule.streamerHandle) {
-    const nameMetrics = ctx.measureText ? ctx.measureText(schedule.streamerName || '') : { width: 120 * scale };
     ctx.font = `500 ${Math.round(18 * scale)}px ${theme.typography.dayFont}`;
     ctx.fillStyle = theme.colors.textSecondary;
-    ctx.fillText(schedule.streamerHandle, titleX + nameMetrics.width + Math.round(14 * scale), streamerY + Math.round(4 * scale));
+    ctx.fillText(schedule.streamerHandle, currentX, streamerY + Math.round(4 * scale));
+    const handleMetrics = ctx.measureText
+      ? ctx.measureText(schedule.streamerHandle)
+      : { width: 90 * scale };
+    currentX += handleMetrics.width + Math.round(14 * scale);
+  }
+
+  // 配信先プラットフォームバッジ描画
+  if (Array.isArray(schedule.platforms) && schedule.platforms.length > 0) {
+    const badgeH = Math.round(22 * scale);
+    const badgeY = streamerY + Math.round(3 * scale);
+    ctx.font = `bold ${Math.round(12 * scale)}px ${theme.typography.bodyFont}`;
+
+    for (const platform of schedule.platforms) {
+      if (!platform) continue;
+      const pColors = PLATFORM_BADGE_COLORS[platform] ?? {
+        bg: theme.colors.accentPrimary,
+        text: theme.colors.timeBadgeText,
+      };
+      const pMetrics = ctx.measureText ? ctx.measureText(platform) : { width: platform.length * 10 * scale };
+      const badgeW = pMetrics.width + Math.round(16 * scale);
+
+      drawRoundedRect(ctx, currentX, badgeY, badgeW, badgeH, Math.round(6 * scale));
+      ctx.fillStyle = pColors.bg;
+      ctx.fill();
+
+      ctx.fillStyle = pColors.text;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(platform, currentX + badgeW / 2, badgeY + badgeH / 2);
+
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      currentX += badgeW + Math.round(8 * scale);
+    }
   }
 
   // 5. ハッシュタグ
@@ -277,8 +725,14 @@ export function drawScheduleCards(
   const cornerRadius = Math.round(theme.decorations.cardCornerRadius * scale);
 
   for (const card of cards) {
-    const item = schedule.items.find((it) => it.dayOfWeek === card.dayOfWeek) ?? schedule.items[card.index];
+    // インデックス順を優先しつつ、必要に応じて曜日一致でフォールバック（日曜始まり・任意日始まりにも完全対応）
+    const item =
+      schedule.items[card.index] ??
+      schedule.items.find((it) => it.dayOfWeek === card.dayOfWeek);
     if (!item) continue;
+
+    const itemDay: DayOfWeek = item.dayOfWeek || card.dayOfWeek;
+    const isWeekend = itemDay === 'SAT' || itemDay === 'SUN';
 
     ctx.save();
 
@@ -287,7 +741,7 @@ export function drawScheduleCards(
     ctx.fillStyle = theme.colors.cardBg;
 
     if (theme.decorations.cardGlow) {
-      ctx.shadowColor = card.isWeekend
+      ctx.shadowColor = isWeekend
         ? theme.colors.accentSecondary
         : (theme.colors.cardShadow ?? theme.colors.accentPrimary);
       ctx.shadowBlur = Math.round(12 * scale);
@@ -299,7 +753,7 @@ export function drawScheduleCards(
     ctx.shadowColor = 'transparent';
 
     // 2. カード枠線
-    ctx.strokeStyle = card.isWeekend ? theme.colors.accentSecondary : theme.colors.cardBorder;
+    ctx.strokeStyle = isWeekend ? theme.colors.accentSecondary : theme.colors.cardBorder;
     ctx.lineWidth = Math.max(1, Math.round(2 * scale));
     ctx.stroke();
 
@@ -318,16 +772,16 @@ export function drawScheduleCards(
       badgeHeight,
       Math.round(6 * scale)
     );
-    ctx.fillStyle = card.isWeekend ? theme.colors.accentSecondary : theme.colors.accentPrimary;
+    ctx.fillStyle = isWeekend ? theme.colors.accentSecondary : theme.colors.accentPrimary;
     ctx.fill();
 
     // 曜日テキスト
     ctx.font = `bold ${Math.round(14 * scale)}px ${theme.typography.dayFont}`;
-    ctx.fillStyle = card.isWeekend ? '#ffffff' : theme.colors.timeBadgeText;
+    ctx.fillStyle = isWeekend ? '#ffffff' : theme.colors.timeBadgeText;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(
-      card.dayOfWeek,
+      itemDay,
       card.x + paddingX + badgeWidth / 2,
       card.y + paddingTop + badgeHeight / 2
     );
@@ -344,7 +798,7 @@ export function drawScheduleCards(
     );
 
     // 曜日日本語表記 (月)
-    const dayJa = DAY_OF_WEEK_JA[card.dayOfWeek];
+    const dayJa = DAY_OF_WEEK_JA[itemDay] ?? '';
     ctx.font = `500 ${Math.round(14 * scale)}px ${theme.typography.bodyFont}`;
     ctx.fillText(
       `(${dayJa})`,
@@ -356,7 +810,9 @@ export function drawScheduleCards(
     if (item.badgeText && !item.isOff) {
       const specialBadgePadding = Math.round(8 * scale);
       ctx.font = `bold ${Math.round(12 * scale)}px ${theme.typography.bodyFont}`;
-      const specialMetrics = ctx.measureText ? ctx.measureText(item.badgeText) : { width: 40 * scale };
+      const specialMetrics = ctx.measureText
+        ? ctx.measureText(item.badgeText)
+        : { width: 40 * scale };
       const specialBadgeWidth = specialMetrics.width + specialBadgePadding * 2;
       const specialBadgeX = card.x + card.width - paddingX - specialBadgeWidth;
 
@@ -422,7 +878,9 @@ export function drawScheduleCards(
       // 配信時刻バッジ (例: 21:00〜)
       if (item.timeString && item.timeString !== '—') {
         ctx.font = `bold ${Math.round(14 * scale)}px ${theme.typography.dayFont}`;
-        const timeMetrics = ctx.measureText ? ctx.measureText(item.timeString) : { width: 50 * scale };
+        const timeMetrics = ctx.measureText
+          ? ctx.measureText(item.timeString)
+          : { width: 50 * scale };
         const timeBadgeW = timeMetrics.width + Math.round(16 * scale);
         const timeBadgeH = Math.round(24 * scale);
 
@@ -471,11 +929,7 @@ export function drawScheduleCards(
         ctx.fillStyle = catConfig.text;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(
-          catLabel,
-          catBadgeX + catBadgeW / 2,
-          contentY + timeBadgeH / 2
-        );
+        ctx.fillText(catLabel, catBadgeX + catBadgeW / 2, contentY + timeBadgeH / 2);
 
         contentY += timeBadgeH + Math.round(16 * scale);
       }
@@ -528,11 +982,14 @@ export async function renderScheduleToContext(
   avatarImage?: CanvasImageSource | null,
   options?: RenderScheduleOptions
 ): Promise<void> {
-  const theme = themeArg ?? getThemeById(schedule.themeId ?? 'cyber-neon');
+  const baseTheme = themeArg ?? getThemeById(schedule.themeId ?? 'cyber-neon');
+  const effectiveTheme = resolveEffectiveTheme(baseTheme, schedule);
   const resolution = options?.resolution ?? schedule.resolution ?? '1920x1080';
   const showCredit = options?.showCredit ?? schedule.showCredit ?? true;
+  const layoutType = options?.layoutType ?? schedule.layoutType ?? 'side-avatar';
+
   const layout = calculateLayout(resolution, {
-    layoutType: options?.layoutType ?? 'side-avatar',
+    layoutType,
     showCredit,
   });
 
@@ -547,26 +1004,35 @@ export async function renderScheduleToContext(
     }
   }
 
-  // 2. 背景グラデーション & パターン描画
-  drawBackgroundAndPattern(ctx, layout.canvasWidth, layout.canvasHeight, theme);
+  // 2. 背景グラデーション・カスタム背景・装飾フレーム描画
+  drawBackgroundAndPattern(
+    ctx,
+    layout.canvasWidth,
+    layout.canvasHeight,
+    effectiveTheme,
+    options?.customBgImage ?? null,
+    schedule.bgOverlayOpacity ?? 0.35,
+    schedule.bgBlur ?? 0
+  );
 
-  // 3. 立ち絵（アバター）合成描画
-  if (avatarImage) {
+  // 3. 立ち絵（アバター）合成描画 (wide-grid 以外のとき、または明示的に指定された場合)
+  if (avatarImage && layoutType !== 'wide-grid') {
     drawAvatar(ctx, avatarImage, options?.avatarConfig, layout.avatarArea, {
       enableDimmerMask: options?.enableDimmerMask ?? true,
-      dimmerColor: theme.colors.background,
+      dimmerColor: effectiveTheme.colors.background,
+      dimmerDirection: layoutType === 'left-avatar' ? 'to-right' : 'to-left',
     });
   }
 
   // 4. ヘッダー描画
-  drawHeader(ctx, schedule, theme, scale);
+  drawHeader(ctx, schedule, effectiveTheme, scale, layout.header);
 
   // 5. 7日分配信枠カード描画
-  drawScheduleCards(ctx, schedule, theme, layout.cards, scale);
+  drawScheduleCards(ctx, schedule, effectiveTheme, layout.cards, scale);
 
   // 6. クレジット透かし描画
   if (showCredit) {
-    drawCredit(ctx, theme, layout.creditPosition, scale);
+    drawCredit(ctx, effectiveTheme, layout.creditPosition, scale);
   }
 }
 

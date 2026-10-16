@@ -18,11 +18,40 @@ export const CanvasPreview = forwardRef<CanvasPreviewHandle, CanvasPreviewProps>
   ({ schedule, avatarConfig, onRenderComplete }, ref) => {
     const internalCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const [isRendering, setIsRendering] = useState<boolean>(true);
+    const [customBgImg, setCustomBgImg] = useState<HTMLImageElement | null>(null);
     const renderCountRef = useRef<number>(0);
 
     useImperativeHandle(ref, () => ({
       getCanvas: () => internalCanvasRef.current,
     }));
+
+    // カスタム背景画像 (customBgDataUrl) のロードと Image 要素キャッシュ
+    useEffect(() => {
+      if (!schedule.customBgDataUrl) {
+        setCustomBgImg(null);
+        return;
+      }
+
+      if (typeof Image === 'undefined') return;
+
+      let isCancelled = false;
+      const img = new Image();
+      img.onload = () => {
+        if (!isCancelled) {
+          setCustomBgImg(img);
+        }
+      };
+      img.onerror = () => {
+        if (!isCancelled) {
+          setCustomBgImg(null);
+        }
+      };
+      img.src = schedule.customBgDataUrl;
+
+      return () => {
+        isCancelled = true;
+      };
+    }, [schedule.customBgDataUrl]);
 
     useEffect(() => {
       let isSubscribed = true;
@@ -49,8 +78,10 @@ export const CanvasPreview = forwardRef<CanvasPreviewHandle, CanvasPreviewProps>
             avatarConfig.imageElement ?? null,
             {
               resolution: schedule.resolution,
+              layoutType: schedule.layoutType ?? 'side-avatar',
               showCredit: schedule.showCredit,
               avatarConfig,
+              customBgImage: customBgImg,
             }
           );
 
@@ -75,7 +106,7 @@ export const CanvasPreview = forwardRef<CanvasPreviewHandle, CanvasPreviewProps>
         isSubscribed = false;
         cancelAnimationFrame(animId);
       };
-    }, [schedule, avatarConfig, onRenderComplete]);
+    }, [schedule, avatarConfig, customBgImg, onRenderComplete]);
 
     const targetWidth = schedule.resolution === '1200x675' ? 1200 : 1920;
     const targetHeight = schedule.resolution === '1200x675' ? 675 : 1080;
@@ -109,7 +140,7 @@ export const CanvasPreview = forwardRef<CanvasPreviewHandle, CanvasPreviewProps>
             {schedule.resolution} ({targetWidth} × {targetHeight}px)
           </span>
           <span className="meta-tip">
-            ※ クリックやドラッグなしでリアルタイムに更新されます
+            ※ 設定・立ち絵・背景変更はリアルタイムに自動保存＆反映されます
           </span>
         </div>
       </div>

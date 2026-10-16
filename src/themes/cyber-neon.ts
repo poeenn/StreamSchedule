@@ -3,10 +3,13 @@ import { ScheduleTheme } from '../types/theme';
 export const cyberNeonTheme: ScheduleTheme = {
   id: 'cyber-neon',
   name: 'サイバーネオン',
-  description: '近未来サイバーパンク調。ネオンシアンとマゼンタが映えるハイテクスタイル。',
+  description: '近未来サイバーパンク調。ネオンシアンとマゼンタが映えるハイテクゲーミング枠。',
   previewThumbnail: '#00f3ff',
+  previewGradient: ['#070a13', '#0d1b36'],
+  badgeLabel: '🎮 ゲーミング・近未来',
   colors: {
     background: '#070a13',
+    bgGradientEnd: '#0d1527',
     bgGlowColor: 'rgba(0, 243, 255, 0.15)',
     cardBg: 'rgba(13, 21, 39, 0.85)',
     cardBorder: 'rgba(0, 243, 255, 0.5)',
@@ -34,12 +37,13 @@ export const cyberNeonTheme: ScheduleTheme = {
   typography: {
     titleFont: "'Orbitron', 'Rajdhani', 'Segoe UI', sans-serif",
     dayFont: "'Rajdhani', 'Segoe UI', sans-serif",
-    bodyFont: "'Noto Sans JP', 'Hiragino Kaku Gothic ProN', sans-serif",
+    bodyFont: "'Zen Kaku Gothic New', 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', sans-serif",
   },
   decorations: {
     patternType: 'grid',
-    patternOpacity: 0.1,
+    patternOpacity: 0.12,
     cardCornerRadius: 10,
     cardGlow: true,
+    frameStyle: 'cyber',
   },
 };
