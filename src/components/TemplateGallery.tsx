@@ -12,7 +12,8 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { THEMES } from '../themes';
-import { FontStyleType, LayoutType, WeeklySchedule } from '../types/schedule';
+import { LayoutType, WeeklySchedule } from '../types/schedule';
+import { FONT_STYLE_OPTIONS } from '../core/canvas-renderer';
 import { ACCENT_COLOR_PRESETS } from '../constants/default-schedule';
 
 interface TemplateGalleryProps {
@@ -25,13 +26,6 @@ const LAYOUT_OPTIONS: { id: LayoutType; label: string; desc: string }[] = [
   { id: 'side-avatar', label: '右立ち絵 (標準)', desc: '左:7日カード / 右:立ち絵' },
   { id: 'left-avatar', label: '左立ち絵', desc: '左:立ち絵 / 右:7日カード' },
   { id: 'wide-grid', label: '立ち絵なしワイド', desc: '全画面に7日カードを大きく配置' },
-];
-
-const FONT_OPTIONS: { id: FontStyleType; label: string; sample: string }[] = [
-  { id: 'theme', label: 'テンプレ標準', sample: 'テーマ最適フォント' },
-  { id: 'gothic', label: 'スッキリ角ゴシック', sample: '視認性抜群・ゲーム実況向け' },
-  { id: 'rounded', label: 'かわいい丸ゴシック', sample: 'やわらか・雑談＆ポップ向け' },
-  { id: 'serif', label: 'クール明朝・セリフ', sample: '和風・大人シック・歌枠向け' },
 ];
 
 export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
@@ -335,24 +329,49 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({
           </div>
         </div>
 
-        {/* フォントスタイル切替 */}
+        {/* フォントスタイル切替（全12種類・書体プレビュー付き） */}
         <div className="customizer-block mt-3">
           <label className="form-label">
             <Type size={14} className="text-accent" />
-            <span>フォントスタイル切替</span>
+            <span>フォントスタイル切替（全12書体・ボタン上で書体見本プレビュー）</span>
           </label>
-          <div className="option-buttons-row mt-2">
-            {FONT_OPTIONS.map((font) => (
-              <button
-                key={font.id}
-                type="button"
-                className={`option-card-btn ${currentFont === font.id ? 'active' : ''}`}
-                onClick={() => onUpdateSchedule({ fontStyle: font.id })}
-              >
-                <span className="option-main">{font.label}</span>
-                <span className="option-sub">{font.sample}</span>
-              </button>
-            ))}
+          <div className="font-options-grid mt-2" role="radiogroup" aria-label="フォントスタイル選択">
+            {FONT_STYLE_OPTIONS.map((font) => {
+              const isSelected = currentFont === font.id;
+              return (
+                <button
+                  key={font.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
+                  className={`font-option-card ${isSelected ? 'active' : ''}`}
+                  style={{ fontFamily: font.fontStack }}
+                  onClick={() => onUpdateSchedule({ fontStyle: font.id })}
+                >
+                  <div className="font-card-top-row">
+                    <span
+                      className="option-main"
+                      style={{ fontFamily: font.fontStack }}
+                    >
+                      {font.label}
+                    </span>
+                    <span className="font-category-badge">{font.categoryBadge}</span>
+                  </div>
+                  <span
+                    className="font-specimen-preview"
+                    style={{ fontFamily: font.fontStack }}
+                  >
+                    週間配信予定 Aa123
+                  </span>
+                  <span
+                    className="font-sample-desc"
+                    style={{ fontFamily: font.fontStack }}
+                  >
+                    {font.sample}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 

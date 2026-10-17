@@ -57,6 +57,104 @@ export const PLATFORM_BADGE_COLORS: Record<string, { bg: string; text: string }>
 };
 
 /**
+ * フォントスタイル選択肢のメタデータ定義（全12種類）
+ */
+export interface FontStyleOption {
+  id: FontStyleType;
+  label: string;
+  sample: string;
+  categoryBadge: string;
+  fontStack: string;
+}
+
+export const FONT_STYLE_OPTIONS: FontStyleOption[] = [
+  {
+    id: 'theme',
+    label: 'テンプレ標準',
+    sample: 'テーマ最適フォント',
+    categoryBadge: 'AUTO',
+    fontStack: 'inherit',
+  },
+  {
+    id: 'gothic',
+    label: 'スッキリ角ゴシック',
+    sample: '視認性抜群・王道定番',
+    categoryBadge: '定番ゴシック',
+    fontStack: "'Zen Kaku Gothic New', 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', sans-serif",
+  },
+  {
+    id: 'rounded',
+    label: 'かわいい丸ゴシック',
+    sample: 'やわらか・雑談＆ポップ',
+    categoryBadge: '丸文字',
+    fontStack: "'M PLUS Rounded 1c', 'Kosugi Maru', sans-serif",
+  },
+  {
+    id: 'maru-pop',
+    label: 'ふんわり愛され丸文字',
+    sample: 'ゆるふわ・癒やし・カフェ系',
+    categoryBadge: 'ゆるふわ',
+    fontStack: "'Kiwi Maru', 'M PLUS Rounded 1c', sans-serif",
+  },
+  {
+    id: 'serif',
+    label: 'クール明朝・セリフ',
+    sample: '和風・大人シック・歌枠',
+    categoryBadge: '明朝・上品',
+    fontStack: "'Shippori Mincho', 'Noto Serif JP', 'Hiragino Mincho ProN', serif",
+  },
+  {
+    id: 'pop-bold',
+    label: '極太インパクトPOP',
+    sample: 'サムネ映え・大型企画・バラエティ',
+    categoryBadge: '極太POP',
+    fontStack: "'Dela Gothic One', 'Zen Kaku Gothic New', sans-serif",
+  },
+  {
+    id: 'mochiy-pop',
+    label: 'もちっとポップ',
+    sample: '元気・アイドル・キュート系',
+    categoryBadge: 'キュートPOP',
+    fontStack: "'Mochiy Pop One', 'M PLUS Rounded 1c', sans-serif",
+  },
+  {
+    id: 'rock-pop',
+    label: 'ロック＆エネルギッシュ',
+    sample: 'ロゴ風・音楽・アクション',
+    categoryBadge: 'ロゴ・力強い',
+    fontStack: "'RocknRoll One', 'Zen Kaku Gothic New', sans-serif",
+  },
+  {
+    id: 'pixel-retro',
+    label: 'レトロゲーム・ドット風',
+    sample: '8bit・インディー・RPG実況',
+    categoryBadge: 'ドット絵',
+    fontStack: "'DotGothic16', monospace, sans-serif",
+  },
+  {
+    id: 'handwritten',
+    label: '手書き風・マジックペン',
+    sample: '親しみやすい手書き・日常枠',
+    categoryBadge: '手書き風',
+    fontStack: "'Yusei Magic', 'M PLUS Rounded 1c', sans-serif",
+  },
+  {
+    id: 'fude-brush',
+    label: '和風毛筆・筆文字',
+    sample: '和風ホラー・格ゲー・雀魂',
+    categoryBadge: '毛筆・和風',
+    fontStack: "'Yuji Syuku', 'Shippori Mincho', serif",
+  },
+  {
+    id: 'antique-novel',
+    label: 'クラシカル・ノベル風',
+    sample: 'ファンタジー・TRPG・考察',
+    categoryBadge: 'ノベル・古典',
+    fontStack: "'Zen Antique', 'Shippori Mincho', serif",
+  },
+];
+
+/**
  * HEX または RGB(A) カラー文字列に指定のアルファ値 (0.0 〜 1.0) を適用した rgba() 文字列を返す純粋関数
  */
 export function applyAlphaToColor(color: string, alpha: number): string {
@@ -124,15 +222,12 @@ export function resolveEffectiveTheme(
   let typography = { ...baseTheme.typography };
   const fontStyle: FontStyleType | undefined = schedule.fontStyle;
 
-  if (fontStyle === 'gothic') {
-    const stack = "'Zen Kaku Gothic New', 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', sans-serif";
-    typography = { titleFont: stack, dayFont: stack, bodyFont: stack };
-  } else if (fontStyle === 'rounded') {
-    const stack = "'M PLUS Rounded 1c', 'Kosugi Maru', sans-serif";
-    typography = { titleFont: stack, dayFont: stack, bodyFont: stack };
-  } else if (fontStyle === 'serif') {
-    const stack = "'Shippori Mincho', 'Noto Serif JP', 'Hiragino Mincho ProN', serif";
-    typography = { titleFont: stack, dayFont: stack, bodyFont: stack };
+  if (fontStyle && fontStyle !== 'theme') {
+    const matchedFont = FONT_STYLE_OPTIONS.find((f) => f.id === fontStyle);
+    if (matchedFont) {
+      const stack = matchedFont.fontStack;
+      typography = { titleFont: stack, dayFont: stack, bodyFont: stack };
+    }
   }
 
   const colors = { ...baseTheme.colors };
@@ -995,10 +1090,19 @@ export async function renderScheduleToContext(
 
   const scale = layout.canvasWidth / 1920;
 
-  // 1. フォント待機 (ブラウザ環境時のみ安全に実行)
-  if (typeof document !== 'undefined' && document?.fonts?.ready) {
+  // 1. フォント待機 (ブラウザ環境時のみ安全に実行・Google Fonts日本語サブセットの明示的ロード要求を含む)
+  if (typeof document !== 'undefined' && document?.fonts) {
     try {
-      await document.fonts.ready;
+      if (typeof document.fonts.load === 'function') {
+        const sampleText = '週間配信予定WEEKLY123月火水木金土日ゲーム雑談歌枠';
+        await Promise.all([
+          document.fonts.load(`700 24px ${effectiveTheme.typography.titleFont}`, sampleText),
+          document.fonts.load(`700 24px ${effectiveTheme.typography.bodyFont}`, sampleText),
+        ]);
+      }
+      if (document.fonts.ready) {
+        await document.fonts.ready;
+      }
     } catch {
       // フォント未準備時もスキップして続行
     }

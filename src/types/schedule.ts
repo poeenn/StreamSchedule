@@ -24,7 +24,19 @@ export type ResolutionPreset = '1920x1080' | '1200x675';
 
 export type LayoutType = 'side-avatar' | 'left-avatar' | 'wide-grid';
 
-export type FontStyleType = 'theme' | 'gothic' | 'rounded' | 'serif';
+export type FontStyleType =
+  | 'theme'          // テンプレ標準（テーマ最適フォント）
+  | 'gothic'         // スッキリ角ゴシック (Zen Kaku Gothic New)
+  | 'rounded'        // かわいい丸ゴシック (M PLUS Rounded 1c)
+  | 'maru-pop'       // ふんわり愛され丸文字 (Kiwi Maru)
+  | 'serif'          // クール明朝・セリフ (Shippori Mincho)
+  | 'pop-bold'       // 極太インパクトPOP (Dela Gothic One)
+  | 'mochiy-pop'     // もちっとポップ (Mochiy Pop One)
+  | 'rock-pop'       // ロック＆エネルギッシュ (RocknRoll One)
+  | 'pixel-retro'    // レトロゲーム・ドット風 (DotGothic16)
+  | 'handwritten'    // 手書き風・マジックペン (Yusei Magic)
+  | 'fude-brush'     // 和風毛筆・筆文字 (Yuji Syuku)
+  | 'antique-novel'; // クラシカル・ノベル風 (Zen Antique)
 
 export type StreamPlatform =
   | 'YouTube'

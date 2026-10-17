@@ -9,10 +9,11 @@ import {
   resolveEffectiveTheme,
   DAY_OF_WEEK_JA,
   CATEGORY_LABELS,
+  FONT_STYLE_OPTIONS,
 } from '../src/core/canvas-renderer';
 import { DEFAULT_SCHEDULE_DATA } from '../src/constants/default-schedule';
 import { THEMES, getThemeById } from '../src/themes';
-import { ScheduleData, DayOfWeek, StreamCategory } from '../src/types/schedule';
+import { ScheduleData, DayOfWeek, StreamCategory, FontStyleType } from '../src/types/schedule';
 
 describe('Canvas Renderer', () => {
   function createMockContext() {
@@ -103,6 +104,45 @@ describe('Canvas Renderer', () => {
       expect(customized.colors.headerAccent).toBe('#ff6b9d');
       expect(customized.colors.timeBadgeBg).toBe('#ff6b9d');
       expect(customized.colors.cardBg).toBe('rgba(13, 21, 39, 0.5)');
+    });
+
+    it('defines all 12 FONT_STYLE_OPTIONS and resolveEffectiveTheme correctly maps each font stack', () => {
+      expect(FONT_STYLE_OPTIONS).toHaveLength(12);
+
+      const base = getThemeById('cyber-neon');
+      const expectedFontMap: Record<FontStyleType, string> = {
+        theme: base.typography.bodyFont,
+        gothic: "'Zen Kaku Gothic New', 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', sans-serif",
+        rounded: "'M PLUS Rounded 1c', 'Kosugi Maru', sans-serif",
+        'maru-pop': "'Kiwi Maru', 'M PLUS Rounded 1c', sans-serif",
+        serif: "'Shippori Mincho', 'Noto Serif JP', 'Hiragino Mincho ProN', serif",
+        'pop-bold': "'Dela Gothic One', 'Zen Kaku Gothic New', sans-serif",
+        'mochiy-pop': "'Mochiy Pop One', 'M PLUS Rounded 1c', sans-serif",
+        'rock-pop': "'RocknRoll One', 'Zen Kaku Gothic New', sans-serif",
+        'pixel-retro': "'DotGothic16', monospace, sans-serif",
+        handwritten: "'Yusei Magic', 'M PLUS Rounded 1c', sans-serif",
+        'fude-brush': "'Yuji Syuku', 'Shippori Mincho', serif",
+        'antique-novel': "'Zen Antique', 'Shippori Mincho', serif",
+      };
+
+      for (const option of FONT_STYLE_OPTIONS) {
+        const resolved = resolveEffectiveTheme(base, {
+          ...DEFAULT_SCHEDULE_DATA,
+          fontStyle: option.id,
+        });
+
+        if (option.id === 'theme') {
+          expect(resolved.typography.titleFont).toBe(base.typography.titleFont);
+          expect(resolved.typography.dayFont).toBe(base.typography.dayFont);
+          expect(resolved.typography.bodyFont).toBe(base.typography.bodyFont);
+        } else {
+          const expectedStack = expectedFontMap[option.id];
+          expect(option.fontStack).toBe(expectedStack);
+          expect(resolved.typography.titleFont).toBe(expectedStack);
+          expect(resolved.typography.dayFont).toBe(expectedStack);
+          expect(resolved.typography.bodyFont).toBe(expectedStack);
+        }
+      }
     });
 
     it('drawRoundedRect uses native roundRect when available', () => {
