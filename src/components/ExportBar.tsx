@@ -1,7 +1,25 @@
-import React, { useState } from 'react';
-import { Download, Copy, Share2, Check, Loader2 } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import {
+  Download,
+  Copy,
+  Share2,
+  Check,
+  Loader2,
+  RotateCcw,
+  FileText,
+  Sparkles,
+  AlertTriangle,
+} from 'lucide-react';
 import { WeeklySchedule } from '../types/schedule';
-import { generateTweetText, createTwitterIntentUrl } from '../core/export-service';
+import {
+  generateTweetText,
+  createTwitterIntentUrl,
+  TWEET_TEMPLATE_OPTIONS,
+  TweetTemplateType,
+  calculateTweetCharCount,
+  calculateTweetWeight,
+  MAX_STANDARD_TWEET_WEIGHT,
+} from '../core/export-service';
 
 interface ExportBarProps {
   getCanvas: () => HTMLCanvasElement | null;
@@ -16,6 +34,28 @@ export const ExportBar: React.FC<ExportBarProps> = ({
 }) => {
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [copySuccess, setCopySuccess] = useState<boolean>(false);
+  const [textCopySuccess, setTextCopySuccess] = useState<boolean>(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<TweetTemplateType>('vtuber-compact');
+  const [customTweetText, setCustomTweetText] = useState<string | null>(null);
+
+  // スケジュールと選択テンプレートから自動生成される投稿文（140文字以内自動調整済み）
+  const autoTweetText = useMemo(
+    () => generateTweetText(schedule, { template: selectedTemplate }),
+    [schedule, selectedTemplate]
+  );
+
+  // ユーザーが手動編集していればその内容を優先、未編集なら自動生成文を使用
+  const currentTweetText = customTweetText !== null ? customTweetText : autoTweetText;
+  const isCustomEdited = customTweetText !== null && customTweetText !== autoTweetText;
+
+  // X (Twitter) 文字数カウント（全角140文字 = 280ウェイト換算）
+  const tweetWeight = useMemo(() => calculateTweetWeight(currentTweetText), [currentTweetText]);
+  const tweetCharCount = useMemo(
+    () => calculateTweetCharCount(currentTweetText),
+    [currentTweetText]
+  );
+  const remainingChars = 140 - tweetCharCount;
+  const isOverLimit = tweetWeight > MAX_STANDARD_TWEET_WEIGHT;
 
   // ファイル名生成 (例: stream-schedule-20261019.png)
   const getDownloadFileName = (): string => {
@@ -25,6 +65,34 @@ export const ExportBar: React.FC<ExportBarProps> = ({
     }
     const year = new Date().getFullYear();
     return `stream-schedule-${year}${datePart}.png`;
+  };
+
+  // テンプレート切り替え
+  const handleSelectTemplate = (templateId: TweetTemplateType) => {
+    setSelectedTemplate(templateId);
+    setCustomTweetText(null);
+  };
+
+  // 自動生成文に戻す
+  const handleResetTweetText = () => {
+    setCustomTweetText(null);
+    onShowToast('スケジュールから投稿文を再生成しました！', 'info');
+  };
+
+  // 投稿文章のみクリップボードにコピー
+  const handleCopyTweetText = async () => {
+    if (!navigator.clipboard) {
+      onShowToast('クリップボードへのコピーに対応していません。', 'error');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(currentTweetText);
+      setTextCopySuccess(true);
+      setTimeout(() => setTextCopySuccess(false), 2000);
+      onShowToast('X投稿用テキストをクリップボードにコピーしました！', 'success');
+    } catch {
+      onShowToast('テキストのコピーに失敗しました。', 'error');
+    }
   };
 
   // 1. PNGダウンロード
@@ -126,8 +194,7 @@ export const ExportBar: React.FC<ExportBarProps> = ({
       }, 'image/png');
     }
 
-    const tweetText = generateTweetText(schedule);
-    const intentUrl = createTwitterIntentUrl(tweetText);
+    const intentUrl = createTwitterIntentUrl(currentTweetText);
 
     window.open(intentUrl, '_blank', 'noopener,noreferrer');
 
@@ -139,6 +206,7 @@ export const ExportBar: React.FC<ExportBarProps> = ({
 
   return (
     <div className="export-bar">
+      {/* メインエクスポートボタン群 */}
       <div className="export-buttons-group">
         {/* PNGダウンロードボタン */}
         <button
@@ -173,6 +241,91 @@ export const ExportBar: React.FC<ExportBarProps> = ({
           <span>X (Twitter) で投稿</span>
         </button>
       </div>
+
+      {/* X (Twitter) 投稿文プレビュー＆テンプレート切替セクション */}
+      <div className="tweet-composer-panel mt-3">
+        <div className="tweet-composer-header">
+          <div className="tweet-composer-title">
+            <Sparkles size={15} className="text-accent" />
+            <span>X (Twitter) 投稿文テンプレート＆プレビュー</span>
+          </div>
+
+          <div
+            className={`tweet-char-badge ${
+              isOverLimit ? 'is-over' : remainingChars <= 15 ? 'is-near' : 'is-safe'
+            }`}
+            title="通常Xアカウントの上限（全角140文字＝半角280文字）に対するカウントです"
+          >
+            {isOverLimit && <AlertTriangle size={13} />}
+            <span>
+              {tweetCharCount} / 140文字
+              {isOverLimit
+                ? `（${Math.abs(remainingChars)}文字超過）`
+                : `（残り${remainingChars}文字）`}
+            </span>
+          </div>
+        </div>
+
+        {/* 3種類のVTuber投稿文テンプレート切替ピル */}
+        <div className="tweet-template-pills" role="tablist" aria-label="X投稿文テンプレート">
+          {TWEET_TEMPLATE_OPTIONS.map((opt) => {
+            const active = selectedTemplate === opt.id;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                className={`tweet-template-pill ${active ? 'active' : ''}`}
+                onClick={() => handleSelectTemplate(opt.id)}
+                title={opt.description}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 編集可能な投稿文テキストエリア */}
+        <textarea
+          className={`tweet-preview-textarea ${isOverLimit ? 'border-danger' : ''}`}
+          rows={6}
+          value={currentTweetText}
+          onChange={(e) => setCustomTweetText(e.target.value)}
+          aria-label="X投稿文プレビュー・編集"
+          placeholder="Xに投稿する告知文をここで自由に編集できます"
+        />
+
+        <div className="tweet-composer-footer">
+          <span className="tweet-composer-hint">
+            ※ 宣伝URL等は入りません。タイトルが長い場合も自動で140文字以内に収まります✨
+          </span>
+
+          <div className="tweet-composer-actions">
+            {isCustomEdited && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs"
+                onClick={handleResetTweetText}
+                title="手動編集をリセットしてスケジュールからの自動生成文に戻します"
+              >
+                <RotateCcw size={13} />
+                <span>自動生成文に戻す</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              className={`btn btn-xs ${textCopySuccess ? 'btn-success' : 'btn-secondary'}`}
+              onClick={handleCopyTweetText}
+            >
+              {textCopySuccess ? <Check size={13} /> : <FileText size={13} />}
+              <span>{textCopySuccess ? '文章コピー済' : '文章のみコピー'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
+

@@ -1582,3 +1582,140 @@ body {
   background-color: rgba(0, 243, 255, 0.08);
 }
 
+/* =========================================================
+   X (Twitter) 投稿文テンプレート＆プレビューパネル
+   ========================================================= */
+
+.tweet-composer-panel {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 0.95rem 1.15rem;
+  box-shadow: var(--shadow-main);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.tweet-composer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.tweet-composer-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.tweet-char-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.tweet-char-badge.is-safe {
+  background-color: rgba(16, 185, 129, 0.14);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: var(--color-success);
+}
+
+.tweet-char-badge.is-near {
+  background-color: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.45);
+  color: var(--color-warning);
+}
+
+.tweet-char-badge.is-over {
+  background-color: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: var(--color-danger);
+}
+
+.tweet-template-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.tweet-template-pill {
+  flex: 1;
+  min-width: 145px;
+  padding: 0.38rem 0.7rem;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  text-align: center;
+}
+
+.tweet-template-pill:hover {
+  border-color: var(--text-secondary);
+  color: var(--text-main);
+}
+
+.tweet-template-pill.active {
+  background-color: rgba(0, 243, 255, 0.14);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.18);
+}
+
+.tweet-preview-textarea {
+  width: 100%;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  padding: 0.65rem 0.8rem;
+  font-size: 0.82rem;
+  font-family: inherit;
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 112px;
+  transition: border-color 0.2s;
+}
+
+.tweet-preview-textarea:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+.tweet-preview-textarea.border-danger {
+  border-color: var(--color-danger);
+}
+
+.tweet-composer-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.tweet-composer-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.tweet-composer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-left: auto;
+}
