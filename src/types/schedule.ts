@@ -81,7 +81,7 @@ export interface ScheduleData {
   streamerHandle: string;         // Xアカウント (例: '@poeenn')
   weekTitle: string;              // タイトル (例: 'WEEKLY SCHEDULE', '週間配信予定')
   weekPeriodText: string;         // 期間テキスト (例: '2026.10.19 - 10.25')
-  hashtag: string;                // ハッシュタグ (例: '#配信スケジュール #ぽえらいぶ')
+  hashtag: string;                // ハッシュタグ (例: '#配信スケジュール')
   items: ScheduleItem[];          // 7日分の枠情報 (月〜日)
   themeId: string;                // 選択テーマID
   resolution: ResolutionPreset;   // 選択解像度

@@ -18,9 +18,14 @@ export function loadScheduleFromStorage(storage?: Storage): WeeklySchedule {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed && Array.isArray(parsed.items) && parsed.items.length === 7) {
+        const sanitizedHashtag =
+          typeof parsed.hashtag === 'string'
+            ? parsed.hashtag.replace(/\s*#\u307d\u3048\u3089\u3044\u3076/g, '').trim()
+            : DEFAULT_SCHEDULE_DATA.hashtag;
         return {
           ...DEFAULT_SCHEDULE_DATA,
           ...parsed,
+          hashtag: sanitizedHashtag,
         };
       }
     }

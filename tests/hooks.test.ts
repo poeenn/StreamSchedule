@@ -81,6 +81,18 @@ describe('useSchedule, useAvatarImage, and useSettingsPresets logic tests', () =
       expect(loaded.customAccentColor).toBe('#ff6b9d');
       expect(loaded.fanMark).toBe('🌸🎮');
       expect(loaded.platforms).toEqual(['YouTube', 'Twitch']);
+      expect(loaded.hashtag).toBe('#配信スケジュール');
+    });
+
+    it('automatically strips legacy default hashtag when loading from localStorage', () => {
+      const storage = createMemoryStorage();
+      const legacySchedule = {
+        ...DEFAULT_SCHEDULE_DATA,
+        hashtag: '#配信スケジュール #\u307d\u3048\u3089\u3044\u3076',
+      };
+      saveScheduleToStorage(legacySchedule, storage);
+      const loaded = loadScheduleFromStorage(storage);
+      expect(loaded.hashtag).toBe('#配信スケジュール');
     });
 
     it('gracefully falls back when customBgDataUrl exceeds storage quota', () => {

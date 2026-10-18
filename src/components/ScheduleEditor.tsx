@@ -227,7 +227,7 @@ export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({
                   id="hashtag"
                   type="text"
                   className="form-input"
-                  placeholder="例: #配信スケジュール #ぽえらいぶ"
+                  placeholder="例: #配信スケジュール"
                   value={schedule.hashtag}
                   onChange={(e) => onUpdateSchedule({ hashtag: e.target.value })}
                 />

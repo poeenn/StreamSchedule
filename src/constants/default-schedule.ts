@@ -75,7 +75,7 @@ export const DEFAULT_SCHEDULE_DATA: ScheduleData = {
   streamerHandle: '@poeenn',
   weekTitle: 'WEEKLY SCHEDULE',
   weekPeriodText: '2026.10.19 - 10.25',
-  hashtag: '#配信スケジュール #ぽえらいぶ',
+  hashtag: '#配信スケジュール',
   items: DEFAULT_SCHEDULE_ITEMS,
   themeId: 'cyber-neon',
   resolution: '1920x1080',
